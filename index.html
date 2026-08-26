@@ -4,15 +4,380 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>QZZ GEN – Gerador de Sensi</title>
+
+    <!-- ============================================================
+    PWA – Manifest via link (aponta para um JSON inline via data:)
+    ============================================================ -->
+    <link rel="manifest" id="manifestLink">
     <meta name="theme-color" content="#0a0505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="QZZ GEN">
-    <link rel="manifest" id="manifestLink">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- ============================================================
+    SERVICE WORKER – Registrado via blob URL (funciona em servidor)
+    ============================================================ -->
+    <script>
+        // ================================================================
+        // 0. CHAVES DE ACESSO
+        // ================================================================
+        const CHAVES_VALIDAS = [
+            'qzz-a7k9-2m4p',
+            'qzz-8r3n-6x1l',
+            'qzz-5w0q-9e7v'
+        ];
+
+        // ================================================================
+        // 1. BASE DE DISPOSITIVOS (MUITOS MODELOS)
+        // ================================================================
+        const baseDispositivos = {
+            // SAMSUNG
+            'samsung_s24': { dpi: 600 },
+            'samsung_s24plus': { dpi: 590 },
+            'samsung_s24ultra': { dpi: 600 },
+            'samsung_s23': { dpi: 580 },
+            'samsung_s23plus': { dpi: 585 },
+            'samsung_s23ultra': { dpi: 590 },
+            'samsung_s22': { dpi: 570 },
+            'samsung_s22plus': { dpi: 575 },
+            'samsung_s22ultra': { dpi: 580 },
+            'samsung_s21': { dpi: 560 },
+            'samsung_s21plus': { dpi: 565 },
+            'samsung_s21ultra': { dpi: 570 },
+            'samsung_a55': { dpi: 450 },
+            'samsung_a54': { dpi: 445 },
+            'samsung_a35': { dpi: 430 },
+            'samsung_a34': { dpi: 425 },
+            'samsung_a25': { dpi: 415 },
+            'samsung_a15': { dpi: 400 },
+            'samsung_a14': { dpi: 395 },
+            'samsung_a05': { dpi: 380 },
+            'samsung_zfold5': { dpi: 500 },
+            'samsung_zfold4': { dpi: 490 },
+            'samsung_zflip5': { dpi: 480 },
+            'samsung_zflip4': { dpi: 475 },
+            'samsung_m54': { dpi: 440 },
+            'samsung_m34': { dpi: 420 },
+            'samsung_f54': { dpi: 430 },
+            // XIAOMI
+            'xiaomi_redmi13': { dpi: 400 },
+            'xiaomi_redmi13c': { dpi: 395 },
+            'xiaomi_redmi12': { dpi: 395 },
+            'xiaomi_redmi12c': { dpi: 390 },
+            'xiaomi_poco': { dpi: 460 },
+            'xiaomi_pocox6': { dpi: 470 },
+            'xiaomi_pocox5': { dpi: 460 },
+            'xiaomi_pocof5': { dpi: 465 },
+            'xiaomi_mi14': { dpi: 500 },
+            'xiaomi_mi13': { dpi: 490 },
+            'xiaomi_mi12': { dpi: 480 },
+            'xiaomi_redminote12': { dpi: 410 },
+            'xiaomi_redminote11': { dpi: 405 },
+            'xiaomi_redminote10': { dpi: 400 },
+            'xiaomi_12t': { dpi: 485 },
+            'xiaomi_11t': { dpi: 475 },
+            // MOTOROLA
+            'motorola_g54': { dpi: 394 },
+            'motorola_g53': { dpi: 390 },
+            'motorola_g84': { dpi: 420 },
+            'motorola_g73': { dpi: 400 },
+            'motorola_g72': { dpi: 395 },
+            'motorola_edge40': { dpi: 480 },
+            'motorola_edge50': { dpi: 490 },
+            'motorola_edge30': { dpi: 470 },
+            'motorola_razr40': { dpi: 460 },
+            'motorola_g100': { dpi: 450 },
+            // APPLE
+            'apple_iphone16pm': { dpi: 470 },
+            'apple_iphone16p': { dpi: 468 },
+            'apple_iphone16': { dpi: 465 },
+            'apple_iphone16plus': { dpi: 466 },
+            'apple_iphone15pm': { dpi: 460 },
+            'apple_iphone15p': { dpi: 458 },
+            'apple_iphone15': { dpi: 460 },
+            'apple_iphone15plus': { dpi: 461 },
+            'apple_iphone14pm': { dpi: 460 },
+            'apple_iphone14p': { dpi: 458 },
+            'apple_iphone14': { dpi: 460 },
+            'apple_iphone14plus': { dpi: 461 },
+            'apple_iphone13pm': { dpi: 455 },
+            'apple_iphone13': { dpi: 455 },
+            'apple_iphone13mini': { dpi: 455 },
+            'apple_iphone12pm': { dpi: 450 },
+            'apple_iphone12': { dpi: 450 },
+            'apple_iphone12mini': { dpi: 450 },
+            'apple_iphone11pm': { dpi: 440 },
+            'apple_iphone11': { dpi: 440 },
+            'apple_iphonese3': { dpi: 430 },
+            'apple_iphonese2': { dpi: 425 },
+            // ASUS
+            'asus_rog8': { dpi: 620 },
+            'asus_rog8pro': { dpi: 625 },
+            'asus_rog7': { dpi: 600 },
+            'asus_rog7ultimate': { dpi: 610 },
+            'asus_rog6': { dpi: 590 },
+            'asus_zenfone10': { dpi: 520 },
+            'asus_zenfone9': { dpi: 510 },
+            // ONEPLUS
+            'oneplus_12': { dpi: 510 },
+            'oneplus_12r': { dpi: 500 },
+            'oneplus_11': { dpi: 500 },
+            'oneplus_11r': { dpi: 495 },
+            'oneplus_10pro': { dpi: 490 },
+            'oneplus_10t': { dpi: 485 },
+            'oneplus_nord3': { dpi: 470 },
+            // GOOGLE
+            'google_pixel9': { dpi: 490 },
+            'google_pixel9pro': { dpi: 495 },
+            'google_pixel9xl': { dpi: 500 },
+            'google_pixel8': { dpi: 480 },
+            'google_pixel8pro': { dpi: 485 },
+            'google_pixel8a': { dpi: 470 },
+            'google_pixel7': { dpi: 470 },
+            'google_pixel7pro': { dpi: 475 },
+            'google_pixel6': { dpi: 460 },
+            'google_pixel6pro': { dpi: 465 },
+            // OPPO
+            'oppo_findx7': { dpi: 510 },
+            'oppo_findx7ultra': { dpi: 515 },
+            'oppo_findx6': { dpi: 500 },
+            'oppo_findx5': { dpi: 490 },
+            'oppo_reno11': { dpi: 460 },
+            'oppo_reno10': { dpi: 455 },
+            'oppo_reno9': { dpi: 450 },
+            // REALME
+            'realme_gt5': { dpi: 480 },
+            'realme_gt5pro': { dpi: 485 },
+            'realme_gt3': { dpi: 470 },
+            'realme_gt2': { dpi: 460 },
+            'realme_12': { dpi: 440 },
+            'realme_12pro': { dpi: 445 },
+            'realme_11': { dpi: 435 },
+            'realme_narzo60': { dpi: 430 },
+            // HONOR
+            'honor_magic6': { dpi: 500 },
+            'honor_magic6pro': { dpi: 505 },
+            'honor_magic5': { dpi: 490 },
+            'honor_magic5pro': { dpi: 495 },
+            'honor_90': { dpi: 460 },
+            'honor_90pro': { dpi: 465 },
+            'honor_80': { dpi: 455 },
+            // NOTHING
+            'nothing_phone2': { dpi: 470 },
+            'nothing_phone2a': { dpi: 465 },
+            'nothing_phone1': { dpi: 450 },
+            // OUTRO
+            'outro_outro': { dpi: 420 }
+        };
+
+        const nomesModelos = {
+            's24': 'Galaxy S24',
+            's24plus': 'Galaxy S24+',
+            's24ultra': 'Galaxy S24 Ultra',
+            's23': 'Galaxy S23',
+            's23plus': 'Galaxy S23+',
+            's23ultra': 'Galaxy S23 Ultra',
+            's22': 'Galaxy S22',
+            's22plus': 'Galaxy S22+',
+            's22ultra': 'Galaxy S22 Ultra',
+            's21': 'Galaxy S21',
+            's21plus': 'Galaxy S21+',
+            's21ultra': 'Galaxy S21 Ultra',
+            'a55': 'Galaxy A55',
+            'a54': 'Galaxy A54',
+            'a35': 'Galaxy A35',
+            'a34': 'Galaxy A34',
+            'a25': 'Galaxy A25',
+            'a15': 'Galaxy A15',
+            'a14': 'Galaxy A14',
+            'a05': 'Galaxy A05',
+            'zfold5': 'Z Fold 5',
+            'zfold4': 'Z Fold 4',
+            'zflip5': 'Z Flip 5',
+            'zflip4': 'Z Flip 4',
+            'm54': 'Galaxy M54',
+            'm34': 'Galaxy M34',
+            'f54': 'Galaxy F54',
+            'redmi13': 'Redmi Note 13',
+            'redmi13c': 'Redmi 13C',
+            'redmi12': 'Redmi Note 12',
+            'redmi12c': 'Redmi 12C',
+            'poco': 'Poco X6',
+            'pocox6': 'Poco X6 Pro',
+            'pocox5': 'Poco X5',
+            'pocof5': 'Poco F5',
+            'mi14': 'Xiaomi 14',
+            'mi13': 'Xiaomi 13',
+            'mi12': 'Xiaomi 12',
+            'redminote12': 'Redmi Note 12',
+            'redminote11': 'Redmi Note 11',
+            'redminote10': 'Redmi Note 10',
+            '12t': 'Xiaomi 12T',
+            '11t': 'Xiaomi 11T',
+            'g54': 'Moto G54',
+            'g53': 'Moto G53',
+            'g84': 'Moto G84',
+            'g73': 'Moto G73',
+            'g72': 'Moto G72',
+            'edge40': 'Edge 40',
+            'edge50': 'Edge 50',
+            'edge30': 'Edge 30',
+            'razr40': 'Razr 40',
+            'g100': 'Moto G100',
+            'iphone16pm': 'iPhone 16 Pro Max',
+            'iphone16p': 'iPhone 16 Pro',
+            'iphone16': 'iPhone 16',
+            'iphone16plus': 'iPhone 16 Plus',
+            'iphone15pm': 'iPhone 15 Pro Max',
+            'iphone15p': 'iPhone 15 Pro',
+            'iphone15': 'iPhone 15',
+            'iphone15plus': 'iPhone 15 Plus',
+            'iphone14pm': 'iPhone 14 Pro Max',
+            'iphone14p': 'iPhone 14 Pro',
+            'iphone14': 'iPhone 14',
+            'iphone14plus': 'iPhone 14 Plus',
+            'iphone13pm': 'iPhone 13 Pro Max',
+            'iphone13': 'iPhone 13',
+            'iphone13mini': 'iPhone 13 Mini',
+            'iphone12pm': 'iPhone 12 Pro Max',
+            'iphone12': 'iPhone 12',
+            'iphone12mini': 'iPhone 12 Mini',
+            'iphone11pm': 'iPhone 11 Pro Max',
+            'iphone11': 'iPhone 11',
+            'iphonese3': 'iPhone SE 3',
+            'iphonese2': 'iPhone SE 2',
+            'rog8': 'ROG Phone 8',
+            'rog8pro': 'ROG Phone 8 Pro',
+            'rog7': 'ROG Phone 7',
+            'rog7ultimate': 'ROG Phone 7 Ultimate',
+            'rog6': 'ROG Phone 6',
+            'zenfone10': 'Zenfone 10',
+            'zenfone9': 'Zenfone 9',
+            '12': 'OnePlus 12',
+            '12r': 'OnePlus 12R',
+            '11': 'OnePlus 11',
+            '11r': 'OnePlus 11R',
+            '10pro': 'OnePlus 10 Pro',
+            '10t': 'OnePlus 10T',
+            'nord3': 'Nord 3',
+            'pixel9': 'Pixel 9',
+            'pixel9pro': 'Pixel 9 Pro',
+            'pixel9xl': 'Pixel 9 XL',
+            'pixel8': 'Pixel 8',
+            'pixel8pro': 'Pixel 8 Pro',
+            'pixel8a': 'Pixel 8a',
+            'pixel7': 'Pixel 7',
+            'pixel7pro': 'Pixel 7 Pro',
+            'pixel6': 'Pixel 6',
+            'pixel6pro': 'Pixel 6 Pro',
+            'findx7': 'Find X7',
+            'findx7ultra': 'Find X7 Ultra',
+            'findx6': 'Find X6',
+            'findx5': 'Find X5',
+            'reno11': 'Reno 11',
+            'reno10': 'Reno 10',
+            'reno9': 'Reno 9',
+            'gt5': 'GT 5',
+            'gt5pro': 'GT 5 Pro',
+            'gt3': 'GT 3',
+            'gt2': 'GT 2',
+            '12': 'Realme 12',
+            '12pro': 'Realme 12 Pro',
+            '11': 'Realme 11',
+            'narzo60': 'Narzo 60',
+            'magic6': 'Magic 6',
+            'magic6pro': 'Magic 6 Pro',
+            'magic5': 'Magic 5',
+            'magic5pro': 'Magic 5 Pro',
+            '90': 'Honor 90',
+            '90pro': 'Honor 90 Pro',
+            '80': 'Honor 80',
+            'phone2': 'Phone (2)',
+            'phone2a': 'Phone (2a)',
+            'phone1': 'Phone (1)',
+            'outro': 'Outro'
+        };
+
+        const modelosPorMarca = {
+            samsung: ['s24', 's24plus', 's24ultra', 's23', 's23plus', 's23ultra', 's22', 's22plus', 's22ultra', 's21',
+                's21plus', 's21ultra', 'a55', 'a54', 'a35', 'a34', 'a25', 'a15', 'a14', 'a05', 'zfold5', 'zfold4',
+                'zflip5', 'zflip4', 'm54', 'm34', 'f54'
+            ],
+            xiaomi: ['redmi13', 'redmi13c', 'redmi12', 'redmi12c', 'poco', 'pocox6', 'pocox5', 'pocof5', 'mi14', 'mi13',
+                'mi12', 'redminote12', 'redminote11', 'redminote10', '12t', '11t'
+            ],
+            motorola: ['g54', 'g53', 'g84', 'g73', 'g72', 'edge40', 'edge50', 'edge30', 'razr40', 'g100'],
+            apple: ['iphone16pm', 'iphone16p', 'iphone16', 'iphone16plus', 'iphone15pm', 'iphone15p', 'iphone15',
+                'iphone15plus', 'iphone14pm', 'iphone14p', 'iphone14', 'iphone14plus', 'iphone13pm', 'iphone13',
+                'iphone13mini', 'iphone12pm', 'iphone12', 'iphone12mini', 'iphone11pm', 'iphone11', 'iphonese3', 'iphonese2'
+            ],
+            asus: ['rog8', 'rog8pro', 'rog7', 'rog7ultimate', 'rog6', 'zenfone10', 'zenfone9'],
+            oneplus: ['12', '12r', '11', '11r', '10pro', '10t', 'nord3'],
+            google: ['pixel9', 'pixel9pro', 'pixel9xl', 'pixel8', 'pixel8pro', 'pixel8a', 'pixel7', 'pixel7pro', 'pixel6',
+                'pixel6pro'
+            ],
+            oppo: ['findx7', 'findx7ultra', 'findx6', 'findx5', 'reno11', 'reno10', 'reno9'],
+            realme: ['gt5', 'gt5pro', 'gt3', 'gt2', '12', '12pro', '11', 'narzo60'],
+            honor: ['magic6', 'magic6pro', 'magic5', 'magic5pro', '90', '90pro', '80'],
+            nothing: ['phone2', 'phone2a', 'phone1'],
+            outro: ['outro']
+        };
+
+        // ================================================================
+        // 2. PERFIS
+        // ================================================================
+        const perfis = {
+            agressivo: { geral: 185, redDot: 175, mira2x: 170, mira4x: 155, sniper: 95, freeLook: 100 },
+            equilibrado: { geral: 155, redDot: 145, mira2x: 140, mira4x: 125, sniper: 65, freeLook: 80 },
+            sniper: { geral: 120, redDot: 110, mira2x: 100, mira4x: 85, sniper: 35, freeLook: 60 }
+        };
+
+        // ================================================================
+        // 3. FAMOSOS
+        // ================================================================
+        const famosos = [
+            { nome: 'Nobru', time: 'Fluxo', geral: 128, redDot: 147, mira2x: 157, mira4x: 140, sniper: 48, freeLook: 85 },
+            { nome: 'Cerol', time: 'Fluxo', geral: 45, redDot: 37, mira2x: 70, mira4x: 20, sniper: 3, freeLook: 40 },
+            { nome: 'Mts', time: 'Fluxo W7M', geral: 170, redDot: 160, mira2x: 150, mira4x: 130, sniper: 60, freeLook: 90 },
+            { nome: 'Diollan', time: 'Fluxo', geral: 155, redDot: 145, mira2x: 138, mira4x: 118, sniper: 50, freeLook: 82 },
+            { nome: 'Bops', time: 'Fluxo W7M', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 45, freeLook: 80 },
+            { nome: 'MT7', time: 'Fluxo W7M', geral: 175, redDot: 165, mira2x: 155, mira4x: 135, sniper: 55, freeLook: 88 },
+            { nome: 'Trap', time: 'LOUD', geral: 168, redDot: 158, mira2x: 148, mira4x: 128, sniper: 50, freeLook: 85 },
+            { nome: 'Yago', time: 'LOS', geral: 150, redDot: 140, mira2x: 135, mira4x: 115, sniper: 40, freeLook: 78 },
+            { nome: 'Raone7', time: 'LOS', geral: 148, redDot: 138, mira2x: 133, mira4x: 113, sniper: 38, freeLook: 76 },
+            { nome: 'Two9', time: 'LOUD', geral: 94, redDot: 100, mira2x: 97, mira4x: 91, sniper: 0, freeLook: 50 },
+            { nome: 'Sofiaz', time: 'Fluxo', geral: 182, redDot: 172, mira2x: 168, mira4x: 152, sniper: 88, freeLook: 98 },
+            { nome: 'Tunde', time: 'Fluxo', geral: 140, redDot: 130, mira2x: 125, mira4x: 110, sniper: 45, freeLook: 75 },
+            { nome: 'Deusa', time: 'XLD Gaming', geral: 165, redDot: 155, mira2x: 148, mira4x: 130, sniper: 50, freeLook: 82 },
+            { nome: 'Marechal', time: 'Guilda', geral: 150, redDot: 140, mira2x: 135, mira4x: 115, sniper: 42, freeLook: 78 },
+            { nome: 'Phzin7', time: 'Streamer', geral: 135, redDot: 125, mira2x: 130, mira4x: 110, sniper: 40, freeLook: 70 },
+            { nome: 'Phzin Mobilador', time: 'Streamer', geral: 140, redDot: 130, mira2x: 120, mira4x: 100, sniper: 35,
+                freeLook: 75 },
+            { nome: 'Megadragon', time: 'Pro Player', geral: 155, redDot: 145, mira2x: 140, mira4x: 120, sniper: 45,
+                freeLook: 80 },
+            { nome: 'Apelapato', time: 'Streamer', geral: 130, redDot: 120, mira2x: 115, mira4x: 95, sniper: 30,
+                freeLook: 68 },
+            { nome: 'Mandela', time: 'Pro Player', geral: 148, redDot: 138, mira2x: 133, mira4x: 113, sniper: 40,
+                freeLook: 76 },
+            { nome: 'Zangado7x', time: 'Streamer', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 50,
+                freeLook: 82 },
+            { nome: 'LevelUP', time: 'Pro Player', geral: 155, redDot: 145, mira2x: 140, mira4x: 120, sniper: 45,
+                freeLook: 80 },
+            { nome: 'Onext', time: 'Pro Player', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 50,
+                freeLook: 82 },
+            { nome: 'BlackN444', time: 'Pro Player', geral: 145, redDot: 135, mira2x: 130, mira4x: 110, sniper: 40,
+                freeLook: 76 }
+        ];
+    </script>
+
     <style>
+        /* ================================================================
+               ESTILOS (mesmo código de antes)
+               ================================================================ */
         * {
             margin: 0;
             padding: 0;
@@ -577,9 +942,6 @@
             background: rgba(220, 38, 38, 0.08);
         }
 
-        /* ================================================================
-           STREAMERS – CARDS COM DETALHE (MODAL)
-           ================================================================ */
         .streamers-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -651,9 +1013,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* ================================================================
-           MODAL DO STREAMER
-           ================================================================ */
+        /* MODAL */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -816,6 +1176,29 @@
             background: rgba(220, 38, 38, 0.04);
         }
 
+        .btn-instalar {
+            background: transparent;
+            border: 1px solid rgba(220, 38, 38, 0.20);
+            color: #d08888;
+            padding: 6px 18px;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 30px;
+            transition: 0.15s;
+            display: none;
+        }
+
+        .btn-instalar:hover {
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+
+        .btn-instalar.visivel {
+            display: inline-block;
+        }
+
         .key-area {
             display: flex;
             gap: 12px;
@@ -835,6 +1218,17 @@
             letter-spacing: 0.8px;
             border-top: 1px solid rgba(220, 38, 38, 0.06);
             padding-top: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer .footer-links {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .footer span {
@@ -1067,19 +1461,19 @@
                     <span class="card-title"><span class="icon">|</span> streamers</span>
                     <span class="badge badge-green">2026</span>
                 </div>
-                <div class="streamers-grid" id="streamersGrid">
-                    <!-- preenchido via JS -->
-                </div>
+                <div class="streamers-grid" id="streamersGrid"></div>
             </div>
 
             <button class="btn btn-secondary" id="btnSair">> sair (trocar chave)</button>
+
+            <!-- BOTÃO INSTALAR (aparece quando PWA é detectado) -->
+            <button class="btn btn-instalar" id="btnInstalar">📲 instalar app</button>
+
             <div class="footer"><span>QZZ GEN</span> • free fire 2026</div>
         </div>
     </div>
 
-    <!-- ================================================================
-    MODAL DO STREAMER
-    ================================================================ -->
+    <!-- MODAL -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <div class="modal-header">
@@ -1108,358 +1502,7 @@
 
     <script>
         // ================================================================
-        // 0. CHAVES DE ACESSO
-        // ================================================================
-        const CHAVES_VALIDAS = [
-            'qzz-a7k9-2m4p',
-            'qzz-8r3n-6x1l',
-            'qzz-5w0q-9e7v'
-        ];
-
-        // ================================================================
-        // 1. BASE DE DISPOSITIVOS (MUITOS MODELOS)
-        // ================================================================
-        const baseDispositivos = {
-            // SAMSUNG
-            'samsung_s24': { dpi: 600 },
-            'samsung_s24plus': { dpi: 590 },
-            'samsung_s24ultra': { dpi: 600 },
-            'samsung_s23': { dpi: 580 },
-            'samsung_s23plus': { dpi: 585 },
-            'samsung_s23ultra': { dpi: 590 },
-            'samsung_s22': { dpi: 570 },
-            'samsung_s22plus': { dpi: 575 },
-            'samsung_s22ultra': { dpi: 580 },
-            'samsung_s21': { dpi: 560 },
-            'samsung_s21plus': { dpi: 565 },
-            'samsung_s21ultra': { dpi: 570 },
-            'samsung_a55': { dpi: 450 },
-            'samsung_a54': { dpi: 445 },
-            'samsung_a35': { dpi: 430 },
-            'samsung_a34': { dpi: 425 },
-            'samsung_a25': { dpi: 415 },
-            'samsung_a15': { dpi: 400 },
-            'samsung_a14': { dpi: 395 },
-            'samsung_a05': { dpi: 380 },
-            'samsung_zfold5': { dpi: 500 },
-            'samsung_zfold4': { dpi: 490 },
-            'samsung_zflip5': { dpi: 480 },
-            'samsung_zflip4': { dpi: 475 },
-            'samsung_m54': { dpi: 440 },
-            'samsung_m34': { dpi: 420 },
-            'samsung_f54': { dpi: 430 },
-            // XIAOMI
-            'xiaomi_redmi13': { dpi: 400 },
-            'xiaomi_redmi13c': { dpi: 395 },
-            'xiaomi_redmi12': { dpi: 395 },
-            'xiaomi_redmi12c': { dpi: 390 },
-            'xiaomi_poco': { dpi: 460 },
-            'xiaomi_pocox6': { dpi: 470 },
-            'xiaomi_pocox5': { dpi: 460 },
-            'xiaomi_pocof5': { dpi: 465 },
-            'xiaomi_mi14': { dpi: 500 },
-            'xiaomi_mi13': { dpi: 490 },
-            'xiaomi_mi12': { dpi: 480 },
-            'xiaomi_redminote12': { dpi: 410 },
-            'xiaomi_redminote11': { dpi: 405 },
-            'xiaomi_redminote10': { dpi: 400 },
-            'xiaomi_12t': { dpi: 485 },
-            'xiaomi_11t': { dpi: 475 },
-            // MOTOROLA
-            'motorola_g54': { dpi: 394 },
-            'motorola_g53': { dpi: 390 },
-            'motorola_g84': { dpi: 420 },
-            'motorola_g73': { dpi: 400 },
-            'motorola_g72': { dpi: 395 },
-            'motorola_edge40': { dpi: 480 },
-            'motorola_edge50': { dpi: 490 },
-            'motorola_edge30': { dpi: 470 },
-            'motorola_razr40': { dpi: 460 },
-            'motorola_g100': { dpi: 450 },
-            // APPLE
-            'apple_iphone16pm': { dpi: 470 },
-            'apple_iphone16p': { dpi: 468 },
-            'apple_iphone16': { dpi: 465 },
-            'apple_iphone16plus': { dpi: 466 },
-            'apple_iphone15pm': { dpi: 460 },
-            'apple_iphone15p': { dpi: 458 },
-            'apple_iphone15': { dpi: 460 },
-            'apple_iphone15plus': { dpi: 461 },
-            'apple_iphone14pm': { dpi: 460 },
-            'apple_iphone14p': { dpi: 458 },
-            'apple_iphone14': { dpi: 460 },
-            'apple_iphone14plus': { dpi: 461 },
-            'apple_iphone13pm': { dpi: 455 },
-            'apple_iphone13': { dpi: 455 },
-            'apple_iphone13mini': { dpi: 455 },
-            'apple_iphone12pm': { dpi: 450 },
-            'apple_iphone12': { dpi: 450 },
-            'apple_iphone12mini': { dpi: 450 },
-            'apple_iphone11pm': { dpi: 440 },
-            'apple_iphone11': { dpi: 440 },
-            'apple_iphonese3': { dpi: 430 },
-            'apple_iphonese2': { dpi: 425 },
-            // ASUS
-            'asus_rog8': { dpi: 620 },
-            'asus_rog8pro': { dpi: 625 },
-            'asus_rog7': { dpi: 600 },
-            'asus_rog7ultimate': { dpi: 610 },
-            'asus_rog6': { dpi: 590 },
-            'asus_zenfone10': { dpi: 520 },
-            'asus_zenfone9': { dpi: 510 },
-            // ONEPLUS
-            'oneplus_12': { dpi: 510 },
-            'oneplus_12r': { dpi: 500 },
-            'oneplus_11': { dpi: 500 },
-            'oneplus_11r': { dpi: 495 },
-            'oneplus_10pro': { dpi: 490 },
-            'oneplus_10t': { dpi: 485 },
-            'oneplus_nord3': { dpi: 470 },
-            // GOOGLE
-            'google_pixel9': { dpi: 490 },
-            'google_pixel9pro': { dpi: 495 },
-            'google_pixel9xl': { dpi: 500 },
-            'google_pixel8': { dpi: 480 },
-            'google_pixel8pro': { dpi: 485 },
-            'google_pixel8a': { dpi: 470 },
-            'google_pixel7': { dpi: 470 },
-            'google_pixel7pro': { dpi: 475 },
-            'google_pixel6': { dpi: 460 },
-            'google_pixel6pro': { dpi: 465 },
-            // OPPO
-            'oppo_findx7': { dpi: 510 },
-            'oppo_findx7ultra': { dpi: 515 },
-            'oppo_findx6': { dpi: 500 },
-            'oppo_findx5': { dpi: 490 },
-            'oppo_reno11': { dpi: 460 },
-            'oppo_reno10': { dpi: 455 },
-            'oppo_reno9': { dpi: 450 },
-            // REALME
-            'realme_gt5': { dpi: 480 },
-            'realme_gt5pro': { dpi: 485 },
-            'realme_gt3': { dpi: 470 },
-            'realme_gt2': { dpi: 460 },
-            'realme_12': { dpi: 440 },
-            'realme_12pro': { dpi: 445 },
-            'realme_11': { dpi: 435 },
-            'realme_narzo60': { dpi: 430 },
-            // HONOR
-            'honor_magic6': { dpi: 500 },
-            'honor_magic6pro': { dpi: 505 },
-            'honor_magic5': { dpi: 490 },
-            'honor_magic5pro': { dpi: 495 },
-            'honor_90': { dpi: 460 },
-            'honor_90pro': { dpi: 465 },
-            'honor_80': { dpi: 455 },
-            // NOTHING
-            'nothing_phone2': { dpi: 470 },
-            'nothing_phone2a': { dpi: 465 },
-            'nothing_phone1': { dpi: 450 },
-            // OUTRO
-            'outro_outro': { dpi: 420 }
-        };
-
-        const nomesModelos = {
-            's24': 'Galaxy S24',
-            's24plus': 'Galaxy S24+',
-            's24ultra': 'Galaxy S24 Ultra',
-            's23': 'Galaxy S23',
-            's23plus': 'Galaxy S23+',
-            's23ultra': 'Galaxy S23 Ultra',
-            's22': 'Galaxy S22',
-            's22plus': 'Galaxy S22+',
-            's22ultra': 'Galaxy S22 Ultra',
-            's21': 'Galaxy S21',
-            's21plus': 'Galaxy S21+',
-            's21ultra': 'Galaxy S21 Ultra',
-            'a55': 'Galaxy A55',
-            'a54': 'Galaxy A54',
-            'a35': 'Galaxy A35',
-            'a34': 'Galaxy A34',
-            'a25': 'Galaxy A25',
-            'a15': 'Galaxy A15',
-            'a14': 'Galaxy A14',
-            'a05': 'Galaxy A05',
-            'zfold5': 'Z Fold 5',
-            'zfold4': 'Z Fold 4',
-            'zflip5': 'Z Flip 5',
-            'zflip4': 'Z Flip 4',
-            'm54': 'Galaxy M54',
-            'm34': 'Galaxy M34',
-            'f54': 'Galaxy F54',
-            'redmi13': 'Redmi Note 13',
-            'redmi13c': 'Redmi 13C',
-            'redmi12': 'Redmi Note 12',
-            'redmi12c': 'Redmi 12C',
-            'poco': 'Poco X6',
-            'pocox6': 'Poco X6 Pro',
-            'pocox5': 'Poco X5',
-            'pocof5': 'Poco F5',
-            'mi14': 'Xiaomi 14',
-            'mi13': 'Xiaomi 13',
-            'mi12': 'Xiaomi 12',
-            'redminote12': 'Redmi Note 12',
-            'redminote11': 'Redmi Note 11',
-            'redminote10': 'Redmi Note 10',
-            '12t': 'Xiaomi 12T',
-            '11t': 'Xiaomi 11T',
-            'g54': 'Moto G54',
-            'g53': 'Moto G53',
-            'g84': 'Moto G84',
-            'g73': 'Moto G73',
-            'g72': 'Moto G72',
-            'edge40': 'Edge 40',
-            'edge50': 'Edge 50',
-            'edge30': 'Edge 30',
-            'razr40': 'Razr 40',
-            'g100': 'Moto G100',
-            'iphone16pm': 'iPhone 16 Pro Max',
-            'iphone16p': 'iPhone 16 Pro',
-            'iphone16': 'iPhone 16',
-            'iphone16plus': 'iPhone 16 Plus',
-            'iphone15pm': 'iPhone 15 Pro Max',
-            'iphone15p': 'iPhone 15 Pro',
-            'iphone15': 'iPhone 15',
-            'iphone15plus': 'iPhone 15 Plus',
-            'iphone14pm': 'iPhone 14 Pro Max',
-            'iphone14p': 'iPhone 14 Pro',
-            'iphone14': 'iPhone 14',
-            'iphone14plus': 'iPhone 14 Plus',
-            'iphone13pm': 'iPhone 13 Pro Max',
-            'iphone13': 'iPhone 13',
-            'iphone13mini': 'iPhone 13 Mini',
-            'iphone12pm': 'iPhone 12 Pro Max',
-            'iphone12': 'iPhone 12',
-            'iphone12mini': 'iPhone 12 Mini',
-            'iphone11pm': 'iPhone 11 Pro Max',
-            'iphone11': 'iPhone 11',
-            'iphonese3': 'iPhone SE 3',
-            'iphonese2': 'iPhone SE 2',
-            'rog8': 'ROG Phone 8',
-            'rog8pro': 'ROG Phone 8 Pro',
-            'rog7': 'ROG Phone 7',
-            'rog7ultimate': 'ROG Phone 7 Ultimate',
-            'rog6': 'ROG Phone 6',
-            'zenfone10': 'Zenfone 10',
-            'zenfone9': 'Zenfone 9',
-            '12': 'OnePlus 12',
-            '12r': 'OnePlus 12R',
-            '11': 'OnePlus 11',
-            '11r': 'OnePlus 11R',
-            '10pro': 'OnePlus 10 Pro',
-            '10t': 'OnePlus 10T',
-            'nord3': 'Nord 3',
-            'pixel9': 'Pixel 9',
-            'pixel9pro': 'Pixel 9 Pro',
-            'pixel9xl': 'Pixel 9 XL',
-            'pixel8': 'Pixel 8',
-            'pixel8pro': 'Pixel 8 Pro',
-            'pixel8a': 'Pixel 8a',
-            'pixel7': 'Pixel 7',
-            'pixel7pro': 'Pixel 7 Pro',
-            'pixel6': 'Pixel 6',
-            'pixel6pro': 'Pixel 6 Pro',
-            'findx7': 'Find X7',
-            'findx7ultra': 'Find X7 Ultra',
-            'findx6': 'Find X6',
-            'findx5': 'Find X5',
-            'reno11': 'Reno 11',
-            'reno10': 'Reno 10',
-            'reno9': 'Reno 9',
-            'gt5': 'GT 5',
-            'gt5pro': 'GT 5 Pro',
-            'gt3': 'GT 3',
-            'gt2': 'GT 2',
-            '12': 'Realme 12',
-            '12pro': 'Realme 12 Pro',
-            '11': 'Realme 11',
-            'narzo60': 'Narzo 60',
-            'magic6': 'Magic 6',
-            'magic6pro': 'Magic 6 Pro',
-            'magic5': 'Magic 5',
-            'magic5pro': 'Magic 5 Pro',
-            '90': 'Honor 90',
-            '90pro': 'Honor 90 Pro',
-            '80': 'Honor 80',
-            'phone2': 'Phone (2)',
-            'phone2a': 'Phone (2a)',
-            'phone1': 'Phone (1)',
-            'outro': 'Outro'
-        };
-
-        const modelosPorMarca = {
-            samsung: ['s24', 's24plus', 's24ultra', 's23', 's23plus', 's23ultra', 's22', 's22plus', 's22ultra', 's21',
-                's21plus', 's21ultra', 'a55', 'a54', 'a35', 'a34', 'a25', 'a15', 'a14', 'a05', 'zfold5', 'zfold4',
-                'zflip5', 'zflip4', 'm54', 'm34', 'f54'
-            ],
-            xiaomi: ['redmi13', 'redmi13c', 'redmi12', 'redmi12c', 'poco', 'pocox6', 'pocox5', 'pocof5', 'mi14', 'mi13',
-                'mi12', 'redminote12', 'redminote11', 'redminote10', '12t', '11t'
-            ],
-            motorola: ['g54', 'g53', 'g84', 'g73', 'g72', 'edge40', 'edge50', 'edge30', 'razr40', 'g100'],
-            apple: ['iphone16pm', 'iphone16p', 'iphone16', 'iphone16plus', 'iphone15pm', 'iphone15p', 'iphone15',
-                'iphone15plus', 'iphone14pm', 'iphone14p', 'iphone14', 'iphone14plus', 'iphone13pm', 'iphone13',
-                'iphone13mini', 'iphone12pm', 'iphone12', 'iphone12mini', 'iphone11pm', 'iphone11', 'iphonese3', 'iphonese2'
-            ],
-            asus: ['rog8', 'rog8pro', 'rog7', 'rog7ultimate', 'rog6', 'zenfone10', 'zenfone9'],
-            oneplus: ['12', '12r', '11', '11r', '10pro', '10t', 'nord3'],
-            google: ['pixel9', 'pixel9pro', 'pixel9xl', 'pixel8', 'pixel8pro', 'pixel8a', 'pixel7', 'pixel7pro', 'pixel6',
-                'pixel6pro'
-            ],
-            oppo: ['findx7', 'findx7ultra', 'findx6', 'findx5', 'reno11', 'reno10', 'reno9'],
-            realme: ['gt5', 'gt5pro', 'gt3', 'gt2', '12', '12pro', '11', 'narzo60'],
-            honor: ['magic6', 'magic6pro', 'magic5', 'magic5pro', '90', '90pro', '80'],
-            nothing: ['phone2', 'phone2a', 'phone1'],
-            outro: ['outro']
-        };
-
-        // ================================================================
-        // 2. PERFIS
-        // ================================================================
-        const perfis = {
-            agressivo: { geral: 185, redDot: 175, mira2x: 170, mira4x: 155, sniper: 95, freeLook: 100 },
-            equilibrado: { geral: 155, redDot: 145, mira2x: 140, mira4x: 125, sniper: 65, freeLook: 80 },
-            sniper: { geral: 120, redDot: 110, mira2x: 100, mira4x: 85, sniper: 35, freeLook: 60 }
-        };
-
-        // ================================================================
-        // 3. FAMOSOS
-        // ================================================================
-        const famosos = [
-            { nome: 'Nobru', time: 'Fluxo', geral: 128, redDot: 147, mira2x: 157, mira4x: 140, sniper: 48, freeLook: 85 },
-            { nome: 'Cerol', time: 'Fluxo', geral: 45, redDot: 37, mira2x: 70, mira4x: 20, sniper: 3, freeLook: 40 },
-            { nome: 'Mts', time: 'Fluxo W7M', geral: 170, redDot: 160, mira2x: 150, mira4x: 130, sniper: 60, freeLook: 90 },
-            { nome: 'Diollan', time: 'Fluxo', geral: 155, redDot: 145, mira2x: 138, mira4x: 118, sniper: 50, freeLook: 82 },
-            { nome: 'Bops', time: 'Fluxo W7M', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 45, freeLook: 80 },
-            { nome: 'MT7', time: 'Fluxo W7M', geral: 175, redDot: 165, mira2x: 155, mira4x: 135, sniper: 55, freeLook: 88 },
-            { nome: 'Trap', time: 'LOUD', geral: 168, redDot: 158, mira2x: 148, mira4x: 128, sniper: 50, freeLook: 85 },
-            { nome: 'Yago', time: 'LOS', geral: 150, redDot: 140, mira2x: 135, mira4x: 115, sniper: 40, freeLook: 78 },
-            { nome: 'Raone7', time: 'LOS', geral: 148, redDot: 138, mira2x: 133, mira4x: 113, sniper: 38, freeLook: 76 },
-            { nome: 'Two9', time: 'LOUD', geral: 94, redDot: 100, mira2x: 97, mira4x: 91, sniper: 0, freeLook: 50 },
-            { nome: 'Sofiaz', time: 'Fluxo', geral: 182, redDot: 172, mira2x: 168, mira4x: 152, sniper: 88, freeLook: 98 },
-            { nome: 'Tunde', time: 'Fluxo', geral: 140, redDot: 130, mira2x: 125, mira4x: 110, sniper: 45, freeLook: 75 },
-            { nome: 'Deusa', time: 'XLD Gaming', geral: 165, redDot: 155, mira2x: 148, mira4x: 130, sniper: 50, freeLook: 82 },
-            { nome: 'Marechal', time: 'Guilda', geral: 150, redDot: 140, mira2x: 135, mira4x: 115, sniper: 42, freeLook: 78 },
-            { nome: 'Phzin7', time: 'Streamer', geral: 135, redDot: 125, mira2x: 130, mira4x: 110, sniper: 40, freeLook: 70 },
-            { nome: 'Phzin Mobilador', time: 'Streamer', geral: 140, redDot: 130, mira2x: 120, mira4x: 100, sniper: 35,
-                freeLook: 75 },
-            { nome: 'Megadragon', time: 'Pro Player', geral: 155, redDot: 145, mira2x: 140, mira4x: 120, sniper: 45,
-                freeLook: 80 },
-            { nome: 'Apelapato', time: 'Streamer', geral: 130, redDot: 120, mira2x: 115, mira4x: 95, sniper: 30,
-                freeLook: 68 },
-            { nome: 'Mandela', time: 'Pro Player', geral: 148, redDot: 138, mira2x: 133, mira4x: 113, sniper: 40,
-                freeLook: 76 },
-            { nome: 'Zangado7x', time: 'Streamer', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 50,
-                freeLook: 82 },
-            { nome: 'LevelUP', time: 'Pro Player', geral: 155, redDot: 145, mira2x: 140, mira4x: 120, sniper: 45,
-                freeLook: 80 },
-            { nome: 'Onext', time: 'Pro Player', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 50,
-                freeLook: 82 },
-            { nome: 'BlackN444', time: 'Pro Player', geral: 145, redDot: 135, mira2x: 130, mira4x: 110, sniper: 40,
-                freeLook: 76 }
-        ];
-
-        // ================================================================
-        // 4. LÓGICA
+        // 4. LÓGICA DE GERAÇÃO
         // ================================================================
         function gerarSensi(marca, modelo, sistema, estilo, precisao) {
             const key = `${marca}_${modelo}`;
@@ -1541,6 +1584,8 @@
         const mDpi = document.getElementById('mDpi');
         const mAplicar = document.getElementById('mAplicarSensi');
 
+        const btnInstalar = document.getElementById('btnInstalar');
+
         let ultimoResultado = null;
         let streamerSelecionado = null;
 
@@ -1593,10 +1638,10 @@
                 div.className = 'streamer-card';
                 div.dataset.index = index;
                 div.innerHTML = `
-                    <div class="s-nome">${f.nome}</div>
-                    <div class="s-time">${f.time}</div>
-                    <span class="s-badge-pro">PRO</span>
-                `;
+                        <div class="s-nome">${f.nome}</div>
+                        <div class="s-time">${f.time}</div>
+                        <span class="s-badge-pro">PRO</span>
+                    `;
 
                 div.addEventListener('click', function() {
                     const idx = parseInt(this.dataset.index);
@@ -1804,9 +1849,10 @@
         marca.addEventListener('change', atualizarModelos);
 
         // ================================================================
-        // 14. PWA
+        // 14. PWA – MANIFEST + SERVICE WORKER + INSTALAÇÃO
         // ================================================================
         (function setupPWA() {
+            // Ícone SVG base64
             const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
                 <rect width="512" height="512" rx="80" fill="#0a0505" />
                 <circle cx="256" cy="256" r="140" fill="none" stroke="#dc2626" stroke-width="40" />
@@ -1824,6 +1870,7 @@
 
             const iconData = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgIcon)));
 
+            // Manifest
             const manifest = {
                 name: 'QZZ GEN – Gerador de Sensi',
                 short_name: 'QZZ GEN',
@@ -1842,6 +1889,7 @@
             const manifestURL = URL.createObjectURL(manifestBlob);
             document.getElementById('manifestLink').href = manifestURL;
 
+            // Service Worker
             const swCode = `
                 self.addEventListener('install', e => {
                     e.waitUntil(self.skipWaiting());
@@ -1862,6 +1910,44 @@
                 navigator.serviceWorker.register(swURL, { scope: '/' })
                     .then(() => console.log('SW registrado para PWA'))
                     .catch(err => console.log('SW erro:', err));
+            }
+
+            // Botão de instalação
+            let deferredPrompt = null;
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                btnInstalar.classList.add('visivel');
+                btnInstalar.textContent = '📲 instalar app';
+            });
+
+            btnInstalar.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const result = await deferredPrompt.userChoice;
+                    if (result.outcome === 'accepted') {
+                        console.log('App instalado!');
+                        btnInstalar.classList.remove('visivel');
+                    }
+                    deferredPrompt = null;
+                } else {
+                    alert('Abra este site no Chrome para instalar.');
+                }
+            });
+
+            // Detecta se já está instalado
+            window.addEventListener('appinstalled', () => {
+                btnInstalar.classList.remove('visivel');
+            });
+
+            // No iOS, mostra um hint para adicionar à tela inicial
+            if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
+                btnInstalar.classList.add('visivel');
+                btnInstalar.textContent = '📲 adicionar à tela inicial';
+                btnInstalar.addEventListener('click', () => {
+                    alert('Para instalar no iPhone/iPad:\n1. Toque no ícone de compartilhar\n2. Role para baixo e toque em "Adicionar à Tela de Início"');
+                });
             }
         })();
 
