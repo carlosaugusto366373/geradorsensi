@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>QZZ GEN – Gerador de Sensi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0505;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-image: radial-gradient(ellipse at 30% 10%, #1f0a0a 0%, #0a0505 70%);
+        }
+
+        .container {
+            max-width: 680px;
+            width: 100%;
+            background: #0f0808;
+            border-radius: 24px;
+            padding: 24px 22px 30px;
+            border: 1px solid rgba(220, 38, 38, 0.20);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(220, 38, 38, 0.04);
+            position: relative;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 40%;
+            width: 20%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #dc2626, transparent);
+            filter: blur(4px);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-icon {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 28px;
+            color: #dc2626;
+            text-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+            background: rgba(220, 38, 38, 0.06);
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: 1px solid rgba(220, 38, 38, 0.20);
+        }
+
+        .logo-text {
+            line-height: 1.2;
+        }
+
+        .logo-text .qzz {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #fff;
+        }
+
+        .logo-text .qzz span {
+            color: #dc2626;
+            text-shadow: 0 0 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .logo-text .community {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            color: #a08080;
+            display: block;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .version-badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: #dc2626;
+            border: 1px solid rgba(220, 38, 38, 0.25);
+            padding: 4px 14px;
+            border-radius: 30px;
+            background: rgba(220, 38, 38, 0.06);
+            text-shadow: 0 0 8px rgba(220, 38, 38, 0.15);
+            letter-spacing: 0.5px;
+        }
+
+        .card {
+            background: #130a0a;
+            border-radius: 18px;
+            padding: 18px 16px;
+            margin-bottom: 18px;
+            border: 1px solid rgba(220, 38, 38, 0.08);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            position: relative;
+            transition: border-color 0.2s;
+        }
+
+        .card:hover {
+            border-color: rgba(220, 38, 38, 0.18);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            border-bottom: 1px solid rgba(220, 38, 38, 0.06);
+            padding-bottom: 10px;
+        }
+
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            color: #dcc8c8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: 0.3px;
+        }
+
+        .card-title .icon {
+            font-size: 16px;
+            filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.2));
+        }
+
+        .badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 14px;
+            border-radius: 30px;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.15);
+        }
+
+        .badge-green {
+            background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.10);
+        }
+
+        label {
+            display: block;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: #a08080;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 4px;
+            margin-top: 14px;
+        }
+        label:first-of-type {
+            margin-top: 0;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #0d0606;
+            border: 1px solid rgba(220, 38, 38, 0.15);
+            border-radius: 12px;
+            color: #f0e0e0;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            transition: 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+        }
+
+        select option {
+            background: #0d0606;
+            color: #f0e0e0;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23dc2626' stroke-width='2' fill='none' opacity='0.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .slider-container {
+            margin-top: 14px;
+        }
+
+        .slider-container .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: #a08080;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .slider-container .slider-header span:last-child {
+            color: #dc2626;
+            text-shadow: 0 0 10px rgba(220, 38, 38, 0.2);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #1f0a0a;
+            border: none;
+            border-radius: 10px;
+            outline: none;
+            padding: 0;
+            margin-top: 8px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #dc2626;
+            border: 2px solid #dc2626;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+            transition: 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #dc2626;
+            border: 2px solid #dc2626;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.15s;
+            margin-top: 18px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: #fff;
+            box-shadow: 0 6px 24px rgba(220, 38, 38, 0.15);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(220, 38, 38, 0.12);
+            color: #c0a0a0;
+            box-shadow: none;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+        }
+
+        .btn-secondary:active {
+            background: rgba(220, 38, 38, 0.04);
+        }
+
+        .btn-key {
+            width: auto;
+            padding: 12px 28px;
+            margin-top: 0;
+            flex-shrink: 0;
+            font-size: 12px;
+        }
+
+        .btn-copy {
+            background: rgba(220, 38, 38, 0.06);
+            border: 1px solid rgba(220, 38, 38, 0.12);
+            color: #d08888;
+            padding: 6px 16px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.15s;
+            border-radius: 10px;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-copy:active {
+            background: rgba(220, 38, 38, 0.12);
+        }
+
+        .btn-small {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(220, 38, 38, 0.08);
+            color: #d08888;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 1px solid rgba(220, 38, 38, 0.08);
+        }
+
+        .btn-small:active {
+            background: rgba(220, 38, 38, 0.15);
+        }
+
+        .result-box {
+            background: #0a0505;
+            border-radius: 16px;
+            padding: 14px 16px;
+            margin-top: 18px;
+            border-left: 4px solid #dc2626;
+            box-shadow: 0 0 30px rgba(220, 38, 38, 0.02);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(220, 38, 38, 0.04);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item .label {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            color: #a08080;
+            font-size: 14px;
+        }
+
+        .result-item .value {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            color: #f0e0e0;
+        }
+
+        .result-item .value.highlight {
+            color: #dc2626;
+            text-shadow: 0 0 12px rgba(220, 38, 38, 0.2);
+        }
+
+        .dpi-box {
+            background: #0a0505;
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-top: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(220, 38, 38, 0.06);
+        }
+
+        .dpi-box .label {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            color: #a08080;
+            font-size: 14px;
+        }
+
+        .dpi-box .value {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            font-size: 22px;
+            color: #dc2626;
+            text-shadow: 0 0 16px rgba(220, 38, 38, 0.12);
+        }
+
+        .weapon-tips {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 12px;
+            border-top: 1px solid rgba(220, 38, 38, 0.06);
+            padding-top: 12px;
+        }
+
+        .weapon-tips span {
+            background: rgba(220, 38, 38, 0.04);
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: #a08080;
+            border: 1px solid rgba(220, 38, 38, 0.06);
+        }
+
+        .weapon-tips span strong {
+            color: #dc2626;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+
+        .copy-area {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tip {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            color: #6a5050;
+            text-align: center;
+            margin-top: 12px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .save-area {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .save-area input {
+            flex: 1;
+            padding: 10px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            background: #0a0505;
+            border: 1px solid rgba(220, 38, 38, 0.12);
+            border-radius: 10px;
+            color: #f0e0e0;
+            min-width: 120px;
+        }
+
+        .save-area input:focus {
+            border-color: #dc2626;
+        }
+
+        .history-list {
+            margin-top: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: #a08080;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .history-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .history-list::-webkit-scrollbar-track {
+            background: rgba(220, 38, 38, 0.02);
+            border-radius: 10px;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+            background: #3a1a1a;
+            border-radius: 10px;
+        }
+
+        .history-list .h-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(220, 38, 38, 0.04);
+            padding: 6px 0;
+        }
+
+        .history-list .h-item .h-name {
+            color: #dcc8c8;
+            font-weight: 600;
+        }
+
+        .history-list .h-item .h-sensi {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            color: #a06060;
+        }
+
+        .history-list .h-item .h-load {
+            color: #dc2626;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            padding: 2px 10px;
+            border-radius: 20px;
+            background: rgba(220, 38, 38, 0.04);
+            transition: 0.15s;
+        }
+
+        .history-list .h-item .h-load:hover {
+            background: rgba(220, 38, 38, 0.08);
+        }
+
+        .famoso-seletor select {
+            font-size: 15px;
+            padding: 14px 16px;
+            background: #0a0505;
+            border-color: rgba(220, 38, 38, 0.12);
+            color: #f0e0e0;
+            font-weight: 600;
+        }
+
+        .famoso-display {
+            background: #0a0505;
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 14px;
+            display: none;
+            border-left: 4px solid #dc2626;
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.02);
+        }
+
+        .famoso-display.ativo {
+            display: block;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .famoso-display .nome-time {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            color: #f0e0e0;
+            margin-bottom: 4px;
+        }
+
+        .famoso-display .nome-time small {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            color: #a08080;
+            margin-left: 12px;
+        }
+
+        .famoso-display .sensi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 20px;
+            margin-top: 8px;
+            border-top: 1px solid rgba(220, 38, 38, 0.06);
+            padding-top: 10px;
+        }
+
+        .famoso-display .sensi-grid span {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            color: #a08080;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(220, 38, 38, 0.04);
+            padding: 4px 0;
+        }
+
+        .famoso-display .sensi-grid span strong {
+            font-family: 'Orbitron', sans-serif;
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        .key-area {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .key-area input {
+            flex: 1;
+        }
+
+        .footer {
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: #4a3030;
+            margin-top: 22px;
+            letter-spacing: 0.8px;
+            border-top: 1px solid rgba(220, 38, 38, 0.06);
+            padding-top: 18px;
+        }
+
+        .footer span {
+            color: #dc2626;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 540px) {
+            .container {
+                padding: 16px 14px 20px;
+                border-radius: 18px;
+            }
+            .logo-text .qzz {
+                font-size: 18px;
+            }
+            .logo-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 22px;
+            }
+            .row-2 {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            .key-area {
+                flex-wrap: wrap;
+            }
+            .key-area input {
+                flex: 1 1 100%;
+            }
+            .btn-key {
+                width: 100%;
+            }
+            .version-badge {
+                font-size: 9px;
+                padding: 2px 10px;
+            }
+            .famoso-display .sensi-grid {
+                grid-template-columns: 1fr;
+            }
+            .famoso-display .nome-time {
+                font-size: 15px;
+            }
+            .weapon-tips span {
+                font-size: 11px;
+                padding: 2px 10px;
+            }
+            .save-area input {
+                flex: 1 1 100%;
+            }
+            .save-area .btn-small {
+                flex: 1 1 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+
+        <!-- TELA DE CHAVE -->
+        <div id="telaChave">
+            <div class="header">
+                <div class="logo">
+                    <div class="logo-icon">⚙</div>
+                    <div>
+                        <div class="logo-text">
+                            <span class="qzz">QZZ<span>GEN</span></span>
+                            <span class="community">> gerador de sensi</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="version-badge">v4.0</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="icon">|</span> acesso</span>
+                    <span class="badge">key</span>
+                </div>
+                <p style="color:#a08080; font-family:'Inter',sans-serif; font-weight:500; font-size:15px; margin-bottom:14px;">insira a chave para acessar o gerador</p>
+                <div class="key-area">
+                    <input type="text" id="inputChave" placeholder="digite a chave..." value="">
+                    <button class="btn btn-key" id="btnValidarChave">entrar</button>
+                </div>
+            </div>
+            <div class="footer"><span>QZZ GEN</span> • sistema de chaves exclusivas</div>
+        </div>
+
+        <!-- TELA PRINCIPAL -->
+        <div id="telaPrincipal" class="hidden">
+            <div class="header">
+                <div class="logo">
+                    <div class="logo-icon">⚙</div>
+                    <div>
+                        <div class="logo-text">
+                            <span class="qzz">QZZ<span>GEN</span></span>
+                            <span class="community">> gerador de sensi</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="version-badge">FF 2026</div>
+            </div>
+
+            <!-- GERADOR -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="icon">|</span> dispositivo</span>
+                    <span class="badge">0-200</span>
+                </div>
+
+                <label for="sistema">sistema</label>
+                <select id="sistema">
+                    <option value="android">android</option>
+                    <option value="ios">ios</option>
+                </select>
+
+                <div class="row-2">
+                    <div>
+                        <label for="marca">marca</label>
+                        <select id="marca">
+                            <option value="samsung">samsung</option>
+                            <option value="xiaomi">xiaomi</option>
+                            <option value="motorola">motorola</option>
+                            <option value="apple">apple</option>
+                            <option value="asus">asus</option>
+                            <option value="oneplus">oneplus</option>
+                            <option value="google">google</option>
+                            <option value="oppo">oppo</option>
+                            <option value="realme">realme</option>
+                            <option value="honor">honor</option>
+                            <option value="nothing">nothing</option>
+                            <option value="outro">outro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="modelo">modelo</label>
+                        <select id="modelo"></select>
+                    </div>
+                </div>
+
+                <label for="estilo">estilo de jogo</label>
+                <select id="estilo">
+                    <option value="agressivo">> agressivo (rush)</option>
+                    <option value="equilibrado" selected>> equilibrado</option>
+                    <option value="sniper">> sniper / precisao</option>
+                </select>
+
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span>precisao</span>
+                        <span id="sliderValueLabel">equilibrado</span>
+                    </div>
+                    <input type="range" id="precisaoSlider" min="0" max="100" value="50">
+                </div>
+
+                <button class="btn" id="btnGerar">> gerar sensibilidade</button>
+
+                <div id="resultadoGerado" class="hidden">
+                    <div class="result-box">
+                        <div class="result-item"><span class="label">geral</span><span class="value highlight" id="rGeral">--</span></div>
+                        <div class="result-item"><span class="label">red dot (ponto)</span><span class="value" id="rRedDot">--</span></div>
+                        <div class="result-item"><span class="label">mira 2x</span><span class="value" id="rMira2x">--</span></div>
+                        <div class="result-item"><span class="label">mira 4x</span><span class="value" id="rMira4x">--</span></div>
+                        <div class="result-item"><span class="label">sniper (awm)</span><span class="value" id="rSniper">--</span></div>
+                        <div class="result-item"><span class="label">camera livre</span><span class="value" id="rFreeLook">--</span></div>
+                    </div>
+                    <div class="dpi-box">
+                        <span class="label">| dpi sugerido</span>
+                        <span class="value" id="rDpi">--</span>
+                    </div>
+                    <div class="weapon-tips">
+                        <span>m4: <strong id="tipM4">--</strong></span>
+                        <span>m1887: <strong id="tipM1887">--</strong></span>
+                        <span>awm: <strong id="tipAWM">--</strong></span>
+                        <span>sniper: <strong id="tipSniper">--</strong></span>
+                    </div>
+
+                    <div class="save-area">
+                        <input type="text" id="saveName" placeholder="nome da config..." maxlength="20">
+                        <button class="btn-small" id="btnSalvarConfig">[ salvar ]</button>
+                        <button class="btn-small" id="btnCompartilhar">[ compartilhar ]</button>
+                    </div>
+
+                    <div class="copy-area">
+                        <button class="btn-copy" id="btnCopiarResultado">| copiar config</button>
+                    </div>
+                    <div class="tip">> ajuste fino no modo treino para a perfeicao</div>
+                </div>
+            </div>
+
+            <!-- HISTÓRICO -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="icon">|</span> minhas configs</span>
+                    <span class="badge badge-green">salvas</span>
+                </div>
+                <div class="history-list" id="historyList"></div>
+            </div>
+
+            <!-- FAMOSOS -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="icon">|</span> streamers</span>
+                    <span class="badge badge-green">2026</span>
+                </div>
+
+                <div class="famoso-seletor">
+                    <label for="selectFamoso">escolha o streamer</label>
+                    <select id="selectFamoso">
+                        <option value="">-- selecione --</option>
+                    </select>
+                </div>
+
+                <div class="famoso-display" id="famosoDisplay">
+                    <div class="nome-time">
+                        <span id="famosoNome">nobru</span>
+                        <small id="famosoTime">fluxo</small>
+                    </div>
+                    <div class="sensi-grid">
+                        <span>geral <strong id="fGeral">--</strong></span>
+                        <span>red dot <strong id="fRedDot">--</strong></span>
+                        <span>mira 2x <strong id="fMira2x">--</strong></span>
+                        <span>mira 4x <strong id="fMira4x">--</strong></span>
+                        <span>sniper <strong id="fSniper">--</strong></span>
+                        <span>free look <strong id="fFreeLook">--</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" id="btnSair">> sair (trocar chave)</button>
+            <div class="footer"><span>QZZ GEN</span> • free fire 2026</div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // 0. CHAVES DE ACESSO (minusculas)
+        // ================================================================
+        const CHAVES_VALIDAS = [
+            'qzz-a7k9-2m4p',
+            'qzz-8r3n-6x1l',
+            'qzz-5w0q-9e7v'
+        ];
+
+        // ================================================================
+        // 1. BASE DE DISPOSITIVOS
+        // ================================================================
+        const baseDispositivos = {
+            'samsung_s24': { dpi: 600 },
+            'samsung_s24plus': { dpi: 590 },
+            'samsung_s24ultra': { dpi: 600 },
+            'samsung_s23': { dpi: 580 },
+            'samsung_s23ultra': { dpi: 590 },
+            'samsung_a55': { dpi: 450 },
+            'samsung_a35': { dpi: 430 },
+            'samsung_a15': { dpi: 400 },
+            'samsung_a05': { dpi: 380 },
+            'samsung_zfold5': { dpi: 500 },
+            'samsung_zflip5': { dpi: 480 },
+            'xiaomi_redmi13': { dpi: 400 },
+            'xiaomi_redmi12': { dpi: 395 },
+            'xiaomi_poco': { dpi: 460 },
+            'xiaomi_pocox6': { dpi: 470 },
+            'xiaomi_mi14': { dpi: 500 },
+            'xiaomi_mi13': { dpi: 490 },
+            'xiaomi_redminote12': { dpi: 410 },
+            'motorola_g54': { dpi: 394 },
+            'motorola_g84': { dpi: 420 },
+            'motorola_edge40': { dpi: 480 },
+            'motorola_edge50': { dpi: 490 },
+            'motorola_g73': { dpi: 400 },
+            'apple_iphone16pm': { dpi: 470 },
+            'apple_iphone16': { dpi: 465 },
+            'apple_iphone15pm': { dpi: 460 },
+            'apple_iphone15': { dpi: 460 },
+            'apple_iphone14': { dpi: 460 },
+            'apple_iphone13': { dpi: 455 },
+            'asus_rog8': { dpi: 620 },
+            'asus_rog7': { dpi: 600 },
+            'oneplus_12': { dpi: 510 },
+            'oneplus_12r': { dpi: 500 },
+            'oneplus_11': { dpi: 500 },
+            'google_pixel9': { dpi: 490 },
+            'google_pixel8': { dpi: 480 },
+            'google_pixel8a': { dpi: 470 },
+            'oppo_findx7': { dpi: 510 },
+            'oppo_reno11': { dpi: 460 },
+            'realme_gt5': { dpi: 480 },
+            'realme_12': { dpi: 440 },
+            'honor_magic6': { dpi: 500 },
+            'honor_90': { dpi: 460 },
+            'nothing_phone2': { dpi: 470 },
+            'nothing_phone1': { dpi: 450 },
+            'outro_outro': { dpi: 420 }
+        };
+
+        const nomesModelos = {
+            's24': 'Galaxy S24',
+            's24plus': 'Galaxy S24+',
+            's24ultra': 'Galaxy S24 Ultra',
+            's23': 'Galaxy S23',
+            's23ultra': 'Galaxy S23 Ultra',
+            'a55': 'Galaxy A55',
+            'a35': 'Galaxy A35',
+            'a15': 'Galaxy A15',
+            'a05': 'Galaxy A05',
+            'zfold5': 'Z Fold 5',
+            'zflip5': 'Z Flip 5',
+            'redmi13': 'Redmi Note 13',
+            'redmi12': 'Redmi Note 12',
+            'poco': 'Poco X6',
+            'pocox6': 'Poco X6 Pro',
+            'mi14': 'Xiaomi 14',
+            'mi13': 'Xiaomi 13',
+            'redminote12': 'Redmi Note 12',
+            'g54': 'Moto G54',
+            'g84': 'Moto G84',
+            'edge40': 'Edge 40',
+            'edge50': 'Edge 50',
+            'g73': 'Moto G73',
+            'iphone16pm': 'iPhone 16 Pro Max',
+            'iphone16': 'iPhone 16',
+            'iphone15pm': 'iPhone 15 Pro Max',
+            'iphone15': 'iPhone 15',
+            'iphone14': 'iPhone 14',
+            'iphone13': 'iPhone 13',
+            'rog8': 'ROG Phone 8',
+            'rog7': 'ROG Phone 7',
+            '12': 'OnePlus 12',
+            '12r': 'OnePlus 12R',
+            '11': 'OnePlus 11',
+            'pixel9': 'Pixel 9',
+            'pixel8': 'Pixel 8',
+            'pixel8a': 'Pixel 8a',
+            'findx7': 'Find X7',
+            'reno11': 'Reno 11',
+            'gt5': 'GT 5',
+            '12': 'Realme 12',
+            'magic6': 'Magic 6',
+            '90': 'Honor 90',
+            'phone2': 'Phone (2)',
+            'phone1': 'Phone (1)',
+            'outro': 'Outro'
+        };
+
+        const modelosPorMarca = {
+            samsung: ['s24', 's24plus', 's24ultra', 's23', 's23ultra', 'a55', 'a35', 'a15', 'a05', 'zfold5', 'zflip5'],
+            xiaomi: ['redmi13', 'redmi12', 'poco', 'pocox6', 'mi14', 'mi13', 'redminote12'],
+            motorola: ['g54', 'g84', 'edge40', 'edge50', 'g73'],
+            apple: ['iphone16pm', 'iphone16', 'iphone15pm', 'iphone15', 'iphone14', 'iphone13'],
+            asus: ['rog8', 'rog7'],
+            oneplus: ['12', '12r', '11'],
+            google: ['pixel9', 'pixel8', 'pixel8a'],
+            oppo: ['findx7', 'reno11'],
+            realme: ['gt5', '12'],
+            honor: ['magic6', '90'],
+            nothing: ['phone2', 'phone1'],
+            outro: ['outro']
+        };
+
+        // ================================================================
+        // 2. PERFIS
+        // ================================================================
+        const perfis = {
+            agressivo: { geral: 185, redDot: 175, mira2x: 170, mira4x: 155, sniper: 95, freeLook: 100 },
+            equilibrado: { geral: 155, redDot: 145, mira2x: 140, mira4x: 125, sniper: 65, freeLook: 80 },
+            sniper: { geral: 120, redDot: 110, mira2x: 100, mira4x: 85, sniper: 35, freeLook: 60 }
+        };
+
+        // ================================================================
+        // 3. FAMOSOS
+        // ================================================================
+        const famosos = [
+            { nome: 'Nobru', time: 'Fluxo', geral: 128, redDot: 147, mira2x: 157, mira4x: 140, sniper: 48, freeLook: 85 },
+            { nome: 'Cerol', time: 'Fluxo', geral: 45, redDot: 37, mira2x: 70, mira4x: 20, sniper: 3, freeLook: 40 },
+            { nome: 'Mts', time: 'Fluxo W7M', geral: 170, redDot: 160, mira2x: 150, mira4x: 130, sniper: 60, freeLook: 90 },
+            { nome: 'Diollan', time: 'Fluxo', geral: 155, redDot: 145, mira2x: 138, mira4x: 118, sniper: 50, freeLook: 82 },
+            { nome: 'Bops', time: 'Fluxo W7M', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 45, freeLook: 80 },
+            { nome: 'MT7', time: 'Fluxo W7M', geral: 175, redDot: 165, mira2x: 155, mira4x: 135, sniper: 55, freeLook: 88 },
+            { nome: 'Trap', time: 'LOUD', geral: 168, redDot: 158, mira2x: 148, mira4x: 128, sniper: 50, freeLook: 85 },
+            { nome: 'Yago', time: 'LOS', geral: 150, redDot: 140, mira2x: 135, mira4x: 115, sniper: 40, freeLook: 78 },
+            { nome: 'Raone7', time: 'LOS', geral: 148, redDot: 138, mira2x: 133, mira4x: 113, sniper: 38, freeLook: 76 },
+            { nome: 'Two9', time: 'LOUD', geral: 94, redDot: 100, mira2x: 97, mira4x: 91, sniper: 0, freeLook: 50 },
+            { nome: 'Sofiaz', time: 'Fluxo', geral: 182, redDot: 172, mira2x: 168, mira4x: 152, sniper: 88, freeLook: 98 },
+            { nome: 'Tunde', time: 'Fluxo', geral: 140, redDot: 130, mira2x: 125, mira4x: 110, sniper: 45, freeLook: 75 },
+            { nome: 'Deusa', time: 'XLD Gaming', geral: 165, redDot: 155, mira2x: 148, mira4x: 130, sniper: 50, freeLook: 82 },
+            { nome: 'Marechal', time: 'Guilda', geral: 150, redDot: 140, mira2x: 135, mira4x: 115, sniper: 42, freeLook: 78 },
+            { nome: 'Phzin7', time: 'Streamer', geral: 135, redDot: 125, mira2x: 130, mira4x: 110, sniper: 40, freeLook: 70 },
+            { nome: 'Phzin Mobilador', time: 'Streamer', geral: 140, redDot: 130, mira2x: 120, mira4x: 100, sniper: 35,
+                freeLook: 75 },
+            { nome: 'Megadragon', time: 'Pro Player', geral: 155, redDot: 145, mira2x: 140, mira4x: 120, sniper: 45,
+                freeLook: 80 },
+            { nome: 'Apelapato', time: 'Streamer', geral: 130, redDot: 120, mira2x: 115, mira4x: 95, sniper: 30,
+                freeLook: 68 },
+            { nome: 'Mandela', time: 'Pro Player', geral: 148, redDot: 138, mira2x: 133, mira4x: 113, sniper: 40,
+                freeLook: 76 },
+            { nome: 'Zangado7x', time: 'Streamer', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 50,
+                freeLook: 82 },
+            { nome: 'LevelUP', time: 'Pro Player', geral: 155, redDot: 145, mira2x: 140, mira4x: 120, sniper: 45,
+                freeLook: 80 },
+            { nome: 'Onext', time: 'Pro Player', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 50,
+                freeLook: 82 },
+            { nome: 'BlackN444', time: 'Pro Player', geral: 145, redDot: 135, mira2x: 130, mira4x: 110, sniper: 40,
+                freeLook: 76 }
+        ];
+
+        // ================================================================
+        // 4. LÓGICA
+        // ================================================================
+        function gerarSensi(marca, modelo, sistema, estilo, precisao) {
+            const key = `${marca}_${modelo}`;
+            const device = baseDispositivos[key] || baseDispositivos['outro_outro'];
+            const perfilBase = perfis[estilo] || perfis.equilibrado;
+
+            let fator = 1.0;
+            if (sistema === 'ios') fator = 1.05;
+
+            const sliderFactor = 1 + ((precisao - 50) / 100) * 0.3;
+            fator *= sliderFactor;
+
+            const dpiRef = device.dpi || 420;
+            if (dpiRef > 550) fator *= 0.92;
+            else if (dpiRef < 400) fator *= 1.08;
+
+            const arredondar = (v) => Math.min(200, Math.max(0, Math.round(v * fator)));
+
+            return {
+                geral: arredondar(perfilBase.geral),
+                redDot: arredondar(perfilBase.redDot),
+                mira2x: arredondar(perfilBase.mira2x),
+                mira4x: arredondar(perfilBase.mira4x),
+                sniper: arredondar(perfilBase.sniper),
+                freeLook: arredondar(perfilBase.freeLook),
+                dpi: device.dpi
+            };
+        }
+
+        // ================================================================
+        // 5. INTERFACE
+        // ================================================================
+        const telaChave = document.getElementById('telaChave');
+        const telaPrincipal = document.getElementById('telaPrincipal');
+        const inputChave = document.getElementById('inputChave');
+        const btnValidar = document.getElementById('btnValidarChave');
+        const btnSair = document.getElementById('btnSair');
+
+        const sistema = document.getElementById('sistema');
+        const marca = document.getElementById('marca');
+        const modelo = document.getElementById('modelo');
+        const estilo = document.getElementById('estilo');
+        const precisaoSlider = document.getElementById('precisaoSlider');
+        const sliderValueLabel = document.getElementById('sliderValueLabel');
+        const btnGerar = document.getElementById('btnGerar');
+
+        const resultadoGerado = document.getElementById('resultadoGerado');
+        const rGeral = document.getElementById('rGeral');
+        const rRedDot = document.getElementById('rRedDot');
+        const rMira2x = document.getElementById('rMira2x');
+        const rMira4x = document.getElementById('rMira4x');
+        const rSniper = document.getElementById('rSniper');
+        const rFreeLook = document.getElementById('rFreeLook');
+        const rDpi = document.getElementById('rDpi');
+        const tipM4 = document.getElementById('tipM4');
+        const tipM1887 = document.getElementById('tipM1887');
+        const tipAWM = document.getElementById('tipAWM');
+        const tipSniper = document.getElementById('tipSniper');
+        const btnCopiar = document.getElementById('btnCopiarResultado');
+        const btnSalvar = document.getElementById('btnSalvarConfig');
+        const btnCompartilhar = document.getElementById('btnCompartilhar');
+        const saveName = document.getElementById('saveName');
+        const historyList = document.getElementById('historyList');
+
+        const selectFamoso = document.getElementById('selectFamoso');
+        const famosoDisplay = document.getElementById('famosoDisplay');
+        const fNome = document.getElementById('famosoNome');
+        const fTime = document.getElementById('famosoTime');
+        const fGeral = document.getElementById('fGeral');
+        const fRedDot = document.getElementById('fRedDot');
+        const fMira2x = document.getElementById('fMira2x');
+        const fMira4x = document.getElementById('fMira4x');
+        const fSniper = document.getElementById('fSniper');
+        const fFreeLook = document.getElementById('fFreeLook');
+
+        let ultimoResultado = null;
+
+        // Slider label
+        precisaoSlider.addEventListener('input', function() {
+            const val = parseInt(this.value);
+            if (val < 30) sliderValueLabel.textContent = 'precisao maxima';
+            else if (val < 45) sliderValueLabel.textContent = 'mais preciso';
+            else if (val <= 55) sliderValueLabel.textContent = 'equilibrado';
+            else if (val <= 70) sliderValueLabel.textContent = 'mais agil';
+            else sliderValueLabel.textContent = 'agilidade maxima';
+        });
+
+        function validarChave(chave) {
+            return CHAVES_VALIDAS.includes(chave.trim().toLowerCase());
+        }
+
+        function entrarComChave() {
+            const chave = inputChave.value.trim();
+            if (validarChave(chave)) {
+                telaChave.classList.add('hidden');
+                telaPrincipal.classList.remove('hidden');
+                preencherSelectFamosos();
+                carregarSalvo();
+                renderHistory();
+            } else {
+                alert('x chave invalida!');
+                inputChave.focus();
+                inputChave.select();
+            }
+        }
+
+        btnValidar.addEventListener('click', entrarComChave);
+        inputChave.addEventListener('keydown', (e) => { if (e.key === 'Enter') entrarComChave(); });
+
+        btnSair.addEventListener('click', () => {
+            telaPrincipal.classList.add('hidden');
+            telaChave.classList.remove('hidden');
+            inputChave.value = '';
+            resultadoGerado.classList.add('hidden');
+            famosoDisplay.classList.remove('ativo');
+        });
+
+        // ================================================================
+        // 6. GERAR
+        // ================================================================
+        function exibirResultado(resultado) {
+            ultimoResultado = resultado;
+            rGeral.textContent = resultado.geral;
+            rRedDot.textContent = resultado.redDot;
+            rMira2x.textContent = resultado.mira2x;
+            rMira4x.textContent = resultado.mira4x;
+            rSniper.textContent = resultado.sniper;
+            rFreeLook.textContent = resultado.freeLook;
+            rDpi.textContent = resultado.dpi || '420';
+
+            tipM4.textContent = Math.round(resultado.geral * 0.95);
+            tipM1887.textContent = Math.round(resultado.geral * 0.85);
+            tipAWM.textContent = Math.round(resultado.sniper);
+            tipSniper.textContent = Math.round(resultado.sniper * 0.7);
+
+            resultadoGerado.classList.remove('hidden');
+            resultadoGerado.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            try {
+                localStorage.setItem('qzz_last_sensi', JSON.stringify(resultado));
+            } catch (e) {}
+        }
+
+        btnGerar.addEventListener('click', () => {
+            const marcaSel = marca.value;
+            const modeloSel = modelo.value;
+            const sistemaSel = sistema.value;
+            const estiloSel = estilo.value;
+            const precisao = parseInt(precisaoSlider.value);
+
+            const resultado = gerarSensi(marcaSel, modeloSel, sistemaSel, estiloSel, precisao);
+            exibirResultado(resultado);
+        });
+
+        function carregarSalvo() {
+            try {
+                const data = localStorage.getItem('qzz_last_sensi');
+                if (data) {
+                    const resultado = JSON.parse(data);
+                    exibirResultado(resultado);
+                }
+            } catch (e) {}
+        }
+
+        // ================================================================
+        // 7. COPIAR
+        // ================================================================
+        btnCopiar.addEventListener('click', () => {
+            if (!ultimoResultado) return;
+            const texto =
+                `> QZZ GEN\n> geral: ${ultimoResultado.geral}\n> red dot: ${ultimoResultado.redDot}\n> mira 2x: ${ultimoResultado.mira2x}\n> mira 4x: ${ultimoResultado.mira4x}\n> sniper: ${ultimoResultado.sniper}\n> free look: ${ultimoResultado.freeLook}\n> dpi: ${ultimoResultado.dpi || '420'}`;
+            navigator.clipboard.writeText(texto).then(() => {
+                btnCopiar.textContent = '| copiado!';
+                setTimeout(() => { btnCopiar.textContent = '| copiar config'; }, 2000);
+            }).catch(() => {
+                alert('copie manualmente:\n' + texto);
+            });
+        });
+
+        // ================================================================
+        // 8. SALVAR
+        // ================================================================
+        btnSalvar.addEventListener('click', () => {
+            if (!ultimoResultado) return;
+            const nome = saveName.value.trim() || 'config ' + new Date().toLocaleTimeString();
+            const entry = {
+                nome: nome,
+                dados: ultimoResultado,
+                data: new Date().toISOString()
+            };
+            let historico = JSON.parse(localStorage.getItem('qzz_history') || '[]');
+            historico.unshift(entry);
+            if (historico.length > 10) historico = historico.slice(0, 10);
+            localStorage.setItem('qzz_history', JSON.stringify(historico));
+            renderHistory();
+            saveName.value = '';
+            alert('> config salva como "' + nome + '"');
+        });
+
+        // ================================================================
+        // 9. HISTÓRICO
+        // ================================================================
+        function renderHistory() {
+            const historico = JSON.parse(localStorage.getItem('qzz_history') || '[]');
+            if (historico.length === 0) {
+                historyList.innerHTML =
+                    '<div style="color:#4a3030; font-size:13px;">nenhuma config salva ainda.</div>';
+                return;
+            }
+            historyList.innerHTML = '';
+            historico.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'h-item';
+                div.innerHTML = `
+                        <span class="h-name">${item.nome}</span>
+                        <span class="h-sensi">g:${item.dados.geral} | s:${item.dados.sniper}</span>
+                        <span class="h-load" data-idx="${idx}">[carregar]</span>
+                    `;
+                historyList.appendChild(div);
+            });
+            document.querySelectorAll('.h-load').forEach(el => {
+                el.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.idx);
+                    const historico = JSON.parse(localStorage.getItem('qzz_history') || '[]');
+                    if (historico[idx]) {
+                        exibirResultado(historico[idx].dados);
+                    }
+                });
+            });
+        }
+
+        // ================================================================
+        // 10. COMPARTILHAR
+        // ================================================================
+        btnCompartilhar.addEventListener('click', () => {
+            if (!ultimoResultado) return;
+            const texto =
+                `> QZZ GEN\n> geral: ${ultimoResultado.geral}\n> red dot: ${ultimoResultado.redDot}\n> mira 2x: ${ultimoResultado.mira2x}\n> mira 4x: ${ultimoResultado.mira4x}\n> sniper: ${ultimoResultado.sniper}\n> free look: ${ultimoResultado.freeLook}\n> dpi: ${ultimoResultado.dpi || '420'}`;
+            if (navigator.share) {
+                navigator.share({ title: 'minha config qzz', text: texto }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(texto).then(() => {
+                    alert('| config copiada para compartilhar!');
+                }).catch(() => {
+                    alert('copie manualmente:\n' + texto);
+                });
+            }
+        });
+
+        // ================================================================
+        // 11. FAMOSOS
+        // ================================================================
+        function preencherSelectFamosos() {
+            selectFamoso.innerHTML = '<option value="">-- selecione --</option>';
+            famosos.forEach((f, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = f.nome + ' (' + f.time + ')';
+                selectFamoso.appendChild(opt);
+            });
+
+            selectFamoso.addEventListener('change', function() {
+                const idx = parseInt(this.value);
+                if (isNaN(idx)) {
+                    famosoDisplay.classList.remove('ativo');
+                    return;
+                }
+                const f = famosos[idx];
+                fNome.textContent = f.nome;
+                fTime.textContent = f.time;
+                fGeral.textContent = f.geral;
+                fRedDot.textContent = f.redDot;
+                fMira2x.textContent = f.mira2x;
+                fMira4x.textContent = f.mira4x;
+                fSniper.textContent = f.sniper;
+                fFreeLook.textContent = f.freeLook;
+                famosoDisplay.classList.add('ativo');
+            });
+        }
+
+        // ================================================================
+        // 12. MODELOS
+        // ================================================================
+        function atualizarModelos() {
+            const marcaAtual = marca.value;
+            const modelos = modelosPorMarca[marcaAtual] || ['outro'];
+            modelo.innerHTML = '';
+            modelos.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = nomesModelos[m] || m;
+                modelo.appendChild(opt);
+            });
+        }
+        marca.addEventListener('change', atualizarModelos);
+
+        // ================================================================
+        // 13. INICIALIZAÇÃO
+        // ================================================================
+        inputChave.focus();
+        atualizarModelos();
+
+        console.log('# chaves de acesso (minusculas):');
+        CHAVES_VALIDAS.forEach((k, i) => console.log(`  ${i+1}. ${k}`));
+    </script>
+</body>
+</html>
