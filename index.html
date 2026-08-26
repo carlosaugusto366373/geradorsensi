@@ -4,14 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>QZZ GEN – Gerador de Sensi</title>
-    
-    <!-- Metatags para PWA -->
     <meta name="theme-color" content="#0a0505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="QZZ GEN">
     <link rel="manifest" id="manifestLink">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -34,7 +31,7 @@
         }
 
         .container {
-            max-width: 680px;
+            max-width: 720px;
             width: 100%;
             background: #0f0808;
             border-radius: 24px;
@@ -580,70 +577,243 @@
             background: rgba(220, 38, 38, 0.08);
         }
 
-        .famoso-seletor select {
-            font-size: 15px;
-            padding: 14px 16px;
+        /* ================================================================
+           STREAMERS – CARDS COM DETALHE (MODAL)
+           ================================================================ */
+        .streamers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .streamer-card {
             background: #0a0505;
-            border-color: rgba(220, 38, 38, 0.12);
+            border: 1px solid rgba(220, 38, 38, 0.10);
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .streamer-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: #dc2626;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .streamer-card:hover {
+            border-color: rgba(220, 38, 38, 0.30);
+            background: #0f0606;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.06);
+        }
+
+        .streamer-card:hover::before {
+            opacity: 1;
+        }
+
+        .streamer-card .s-nome {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
             color: #f0e0e0;
-            font-weight: 600;
+            letter-spacing: 0.3px;
         }
 
-        .famoso-display {
-            background: #0a0505;
-            border-radius: 14px;
-            padding: 16px;
-            margin-top: 14px;
+        .streamer-card .s-time {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 11px;
+            color: #a08080;
+            margin-top: 2px;
+            letter-spacing: 0.3px;
+        }
+
+        .streamer-card .s-badge-pro {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 8px;
+            color: #dc2626;
+            border: 1px solid rgba(220, 38, 38, 0.15);
+            padding: 2px 10px;
+            border-radius: 30px;
+            background: rgba(220, 38, 38, 0.04);
+            letter-spacing: 0.5px;
+        }
+
+        /* ================================================================
+           MODAL DO STREAMER
+           ================================================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
             display: none;
-            border-left: 4px solid #dc2626;
-            box-shadow: 0 0 20px rgba(220, 38, 38, 0.02);
-        }
-
-        .famoso-display.ativo {
-            display: block;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
             animation: fadeIn 0.25s ease;
         }
 
-        .famoso-display .nome-time {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            font-size: 18px;
-            color: #f0e0e0;
-            margin-bottom: 4px;
+        .modal-overlay.ativo {
+            display: flex;
         }
 
-        .famoso-display .nome-time small {
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-            font-size: 14px;
-            color: #a08080;
-            margin-left: 12px;
+        .modal {
+            background: #130a0a;
+            border: 1px solid rgba(220, 38, 38, 0.20);
+            border-radius: 24px;
+            padding: 28px 24px 32px;
+            max-width: 480px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+            position: relative;
         }
 
-        .famoso-display .sensi-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px 20px;
-            margin-top: 8px;
-            border-top: 1px solid rgba(220, 38, 38, 0.06);
-            padding-top: 10px;
+        .modal::-webkit-scrollbar {
+            width: 4px;
+        }
+        .modal::-webkit-scrollbar-track {
+            background: rgba(220, 38, 38, 0.02);
+            border-radius: 10px;
+        }
+        .modal::-webkit-scrollbar-thumb {
+            background: #3a1a1a;
+            border-radius: 10px;
         }
 
-        .famoso-display .sensi-grid span {
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-            color: #a08080;
-            font-size: 14px;
+        .modal .modal-header {
             display: flex;
             justify-content: space-between;
-            border-bottom: 1px solid rgba(220, 38, 38, 0.04);
-            padding: 4px 0;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(220, 38, 38, 0.06);
+            padding-bottom: 12px;
         }
 
-        .famoso-display .sensi-grid span strong {
+        .modal .modal-header .m-nome {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            font-size: 22px;
+            color: #f0e0e0;
+        }
+
+        .modal .modal-header .m-time {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            color: #a08080;
+            margin-top: 2px;
+        }
+
+        .modal .modal-close {
+            background: none;
+            border: 1px solid rgba(220, 38, 38, 0.15);
+            color: #a08080;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .modal .modal-close:hover {
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+
+        .modal .sensi-grid-modal {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            margin-top: 8px;
+        }
+
+        .modal .sensi-grid-modal .s-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(220, 38, 38, 0.04);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #a08080;
+        }
+
+        .modal .sensi-grid-modal .s-item strong {
             font-family: 'Orbitron', sans-serif;
             color: #dc2626;
             font-weight: 700;
+        }
+
+        .modal .m-dpi {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(220, 38, 38, 0.06);
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #a08080;
+        }
+
+        .modal .m-dpi strong {
+            font-family: 'Orbitron', sans-serif;
+            color: #dc2626;
+            font-size: 18px;
+        }
+
+        .modal .m-btn-aplicar {
+            width: 100%;
+            padding: 14px;
+            margin-top: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.15s;
+            letter-spacing: 0.5px;
+        }
+
+        .modal .m-btn-aplicar:active {
+            transform: scale(0.97);
+        }
+
+        .modal .m-tag {
+            display: inline-block;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            color: #dc2626;
+            border: 1px solid rgba(220, 38, 38, 0.15);
+            padding: 2px 12px;
+            border-radius: 30px;
+            margin-top: 4px;
+            background: rgba(220, 38, 38, 0.04);
         }
 
         .key-area {
@@ -708,11 +878,15 @@
                 font-size: 9px;
                 padding: 2px 10px;
             }
-            .famoso-display .sensi-grid {
-                grid-template-columns: 1fr;
+            .streamers-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
             }
-            .famoso-display .nome-time {
-                font-size: 15px;
+            .streamer-card .s-nome {
+                font-size: 12px;
+            }
+            .streamer-card .s-time {
+                font-size: 10px;
             }
             .weapon-tips span {
                 font-size: 11px;
@@ -723,6 +897,23 @@
             }
             .save-area .btn-small {
                 flex: 1 1 auto;
+            }
+            .modal {
+                padding: 20px 16px 24px;
+                margin: 10px;
+            }
+            .modal .sensi-grid-modal {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+            .modal .modal-header .m-nome {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .streamers-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -870,33 +1061,14 @@
                 <div class="history-list" id="historyList"></div>
             </div>
 
-            <!-- FAMOSOS -->
+            <!-- STREAMERS -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title"><span class="icon">|</span> streamers</span>
                     <span class="badge badge-green">2026</span>
                 </div>
-
-                <div class="famoso-seletor">
-                    <label for="selectFamoso">escolha o streamer</label>
-                    <select id="selectFamoso">
-                        <option value="">-- selecione --</option>
-                    </select>
-                </div>
-
-                <div class="famoso-display" id="famosoDisplay">
-                    <div class="nome-time">
-                        <span id="famosoNome">nobru</span>
-                        <small id="famosoTime">fluxo</small>
-                    </div>
-                    <div class="sensi-grid">
-                        <span>geral <strong id="fGeral">--</strong></span>
-                        <span>red dot <strong id="fRedDot">--</strong></span>
-                        <span>mira 2x <strong id="fMira2x">--</strong></span>
-                        <span>mira 4x <strong id="fMira4x">--</strong></span>
-                        <span>sniper <strong id="fSniper">--</strong></span>
-                        <span>free look <strong id="fFreeLook">--</strong></span>
-                    </div>
+                <div class="streamers-grid" id="streamersGrid">
+                    <!-- preenchido via JS -->
                 </div>
             </div>
 
@@ -905,9 +1077,38 @@
         </div>
     </div>
 
+    <!-- ================================================================
+    MODAL DO STREAMER
+    ================================================================ -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <div class="m-nome" id="mNome">Nobru</div>
+                    <div class="m-time" id="mTime">Fluxo</div>
+                    <span class="m-tag" id="mTag">PRO PLAYER</span>
+                </div>
+                <button class="modal-close" id="modalClose">✕</button>
+            </div>
+            <div class="sensi-grid-modal" id="mSensiGrid">
+                <div class="s-item">geral <strong id="mGeral">--</strong></div>
+                <div class="s-item">red dot <strong id="mRedDot">--</strong></div>
+                <div class="s-item">mira 2x <strong id="mMira2x">--</strong></div>
+                <div class="s-item">mira 4x <strong id="mMira4x">--</strong></div>
+                <div class="s-item">sniper (awm) <strong id="mSniper">--</strong></div>
+                <div class="s-item">free look <strong id="mFreeLook">--</strong></div>
+            </div>
+            <div class="m-dpi">
+                <span>dpi sugerido</span>
+                <strong id="mDpi">--</strong>
+            </div>
+            <button class="m-btn-aplicar" id="mAplicarSensi">> aplicar esta sensibilidade</button>
+        </div>
+    </div>
+
     <script>
         // ================================================================
-        // 0. CHAVES DE ACESSO (minusculas)
+        // 0. CHAVES DE ACESSO
         // ================================================================
         const CHAVES_VALIDAS = [
             'qzz-a7k9-2m4p',
@@ -916,54 +1117,145 @@
         ];
 
         // ================================================================
-        // 1. BASE DE DISPOSITIVOS
+        // 1. BASE DE DISPOSITIVOS (MUITOS MODELOS)
         // ================================================================
         const baseDispositivos = {
+            // SAMSUNG
             'samsung_s24': { dpi: 600 },
             'samsung_s24plus': { dpi: 590 },
             'samsung_s24ultra': { dpi: 600 },
             'samsung_s23': { dpi: 580 },
+            'samsung_s23plus': { dpi: 585 },
             'samsung_s23ultra': { dpi: 590 },
+            'samsung_s22': { dpi: 570 },
+            'samsung_s22plus': { dpi: 575 },
+            'samsung_s22ultra': { dpi: 580 },
+            'samsung_s21': { dpi: 560 },
+            'samsung_s21plus': { dpi: 565 },
+            'samsung_s21ultra': { dpi: 570 },
             'samsung_a55': { dpi: 450 },
+            'samsung_a54': { dpi: 445 },
             'samsung_a35': { dpi: 430 },
+            'samsung_a34': { dpi: 425 },
+            'samsung_a25': { dpi: 415 },
             'samsung_a15': { dpi: 400 },
+            'samsung_a14': { dpi: 395 },
             'samsung_a05': { dpi: 380 },
             'samsung_zfold5': { dpi: 500 },
+            'samsung_zfold4': { dpi: 490 },
             'samsung_zflip5': { dpi: 480 },
+            'samsung_zflip4': { dpi: 475 },
+            'samsung_m54': { dpi: 440 },
+            'samsung_m34': { dpi: 420 },
+            'samsung_f54': { dpi: 430 },
+            // XIAOMI
             'xiaomi_redmi13': { dpi: 400 },
+            'xiaomi_redmi13c': { dpi: 395 },
             'xiaomi_redmi12': { dpi: 395 },
+            'xiaomi_redmi12c': { dpi: 390 },
             'xiaomi_poco': { dpi: 460 },
             'xiaomi_pocox6': { dpi: 470 },
+            'xiaomi_pocox5': { dpi: 460 },
+            'xiaomi_pocof5': { dpi: 465 },
             'xiaomi_mi14': { dpi: 500 },
             'xiaomi_mi13': { dpi: 490 },
+            'xiaomi_mi12': { dpi: 480 },
             'xiaomi_redminote12': { dpi: 410 },
+            'xiaomi_redminote11': { dpi: 405 },
+            'xiaomi_redminote10': { dpi: 400 },
+            'xiaomi_12t': { dpi: 485 },
+            'xiaomi_11t': { dpi: 475 },
+            // MOTOROLA
             'motorola_g54': { dpi: 394 },
+            'motorola_g53': { dpi: 390 },
             'motorola_g84': { dpi: 420 },
+            'motorola_g73': { dpi: 400 },
+            'motorola_g72': { dpi: 395 },
             'motorola_edge40': { dpi: 480 },
             'motorola_edge50': { dpi: 490 },
-            'motorola_g73': { dpi: 400 },
+            'motorola_edge30': { dpi: 470 },
+            'motorola_razr40': { dpi: 460 },
+            'motorola_g100': { dpi: 450 },
+            // APPLE
             'apple_iphone16pm': { dpi: 470 },
+            'apple_iphone16p': { dpi: 468 },
             'apple_iphone16': { dpi: 465 },
+            'apple_iphone16plus': { dpi: 466 },
             'apple_iphone15pm': { dpi: 460 },
+            'apple_iphone15p': { dpi: 458 },
             'apple_iphone15': { dpi: 460 },
+            'apple_iphone15plus': { dpi: 461 },
+            'apple_iphone14pm': { dpi: 460 },
+            'apple_iphone14p': { dpi: 458 },
             'apple_iphone14': { dpi: 460 },
+            'apple_iphone14plus': { dpi: 461 },
+            'apple_iphone13pm': { dpi: 455 },
             'apple_iphone13': { dpi: 455 },
+            'apple_iphone13mini': { dpi: 455 },
+            'apple_iphone12pm': { dpi: 450 },
+            'apple_iphone12': { dpi: 450 },
+            'apple_iphone12mini': { dpi: 450 },
+            'apple_iphone11pm': { dpi: 440 },
+            'apple_iphone11': { dpi: 440 },
+            'apple_iphonese3': { dpi: 430 },
+            'apple_iphonese2': { dpi: 425 },
+            // ASUS
             'asus_rog8': { dpi: 620 },
+            'asus_rog8pro': { dpi: 625 },
             'asus_rog7': { dpi: 600 },
+            'asus_rog7ultimate': { dpi: 610 },
+            'asus_rog6': { dpi: 590 },
+            'asus_zenfone10': { dpi: 520 },
+            'asus_zenfone9': { dpi: 510 },
+            // ONEPLUS
             'oneplus_12': { dpi: 510 },
             'oneplus_12r': { dpi: 500 },
             'oneplus_11': { dpi: 500 },
+            'oneplus_11r': { dpi: 495 },
+            'oneplus_10pro': { dpi: 490 },
+            'oneplus_10t': { dpi: 485 },
+            'oneplus_nord3': { dpi: 470 },
+            // GOOGLE
             'google_pixel9': { dpi: 490 },
+            'google_pixel9pro': { dpi: 495 },
+            'google_pixel9xl': { dpi: 500 },
             'google_pixel8': { dpi: 480 },
+            'google_pixel8pro': { dpi: 485 },
             'google_pixel8a': { dpi: 470 },
+            'google_pixel7': { dpi: 470 },
+            'google_pixel7pro': { dpi: 475 },
+            'google_pixel6': { dpi: 460 },
+            'google_pixel6pro': { dpi: 465 },
+            // OPPO
             'oppo_findx7': { dpi: 510 },
+            'oppo_findx7ultra': { dpi: 515 },
+            'oppo_findx6': { dpi: 500 },
+            'oppo_findx5': { dpi: 490 },
             'oppo_reno11': { dpi: 460 },
+            'oppo_reno10': { dpi: 455 },
+            'oppo_reno9': { dpi: 450 },
+            // REALME
             'realme_gt5': { dpi: 480 },
+            'realme_gt5pro': { dpi: 485 },
+            'realme_gt3': { dpi: 470 },
+            'realme_gt2': { dpi: 460 },
             'realme_12': { dpi: 440 },
+            'realme_12pro': { dpi: 445 },
+            'realme_11': { dpi: 435 },
+            'realme_narzo60': { dpi: 430 },
+            // HONOR
             'honor_magic6': { dpi: 500 },
+            'honor_magic6pro': { dpi: 505 },
+            'honor_magic5': { dpi: 490 },
+            'honor_magic5pro': { dpi: 495 },
             'honor_90': { dpi: 460 },
+            'honor_90pro': { dpi: 465 },
+            'honor_80': { dpi: 455 },
+            // NOTHING
             'nothing_phone2': { dpi: 470 },
+            'nothing_phone2a': { dpi: 465 },
             'nothing_phone1': { dpi: 450 },
+            // OUTRO
             'outro_outro': { dpi: 420 }
         };
 
@@ -972,62 +1264,151 @@
             's24plus': 'Galaxy S24+',
             's24ultra': 'Galaxy S24 Ultra',
             's23': 'Galaxy S23',
+            's23plus': 'Galaxy S23+',
             's23ultra': 'Galaxy S23 Ultra',
+            's22': 'Galaxy S22',
+            's22plus': 'Galaxy S22+',
+            's22ultra': 'Galaxy S22 Ultra',
+            's21': 'Galaxy S21',
+            's21plus': 'Galaxy S21+',
+            's21ultra': 'Galaxy S21 Ultra',
             'a55': 'Galaxy A55',
+            'a54': 'Galaxy A54',
             'a35': 'Galaxy A35',
+            'a34': 'Galaxy A34',
+            'a25': 'Galaxy A25',
             'a15': 'Galaxy A15',
+            'a14': 'Galaxy A14',
             'a05': 'Galaxy A05',
             'zfold5': 'Z Fold 5',
+            'zfold4': 'Z Fold 4',
             'zflip5': 'Z Flip 5',
+            'zflip4': 'Z Flip 4',
+            'm54': 'Galaxy M54',
+            'm34': 'Galaxy M34',
+            'f54': 'Galaxy F54',
             'redmi13': 'Redmi Note 13',
+            'redmi13c': 'Redmi 13C',
             'redmi12': 'Redmi Note 12',
+            'redmi12c': 'Redmi 12C',
             'poco': 'Poco X6',
             'pocox6': 'Poco X6 Pro',
+            'pocox5': 'Poco X5',
+            'pocof5': 'Poco F5',
             'mi14': 'Xiaomi 14',
             'mi13': 'Xiaomi 13',
+            'mi12': 'Xiaomi 12',
             'redminote12': 'Redmi Note 12',
+            'redminote11': 'Redmi Note 11',
+            'redminote10': 'Redmi Note 10',
+            '12t': 'Xiaomi 12T',
+            '11t': 'Xiaomi 11T',
             'g54': 'Moto G54',
+            'g53': 'Moto G53',
             'g84': 'Moto G84',
+            'g73': 'Moto G73',
+            'g72': 'Moto G72',
             'edge40': 'Edge 40',
             'edge50': 'Edge 50',
-            'g73': 'Moto G73',
+            'edge30': 'Edge 30',
+            'razr40': 'Razr 40',
+            'g100': 'Moto G100',
             'iphone16pm': 'iPhone 16 Pro Max',
+            'iphone16p': 'iPhone 16 Pro',
             'iphone16': 'iPhone 16',
+            'iphone16plus': 'iPhone 16 Plus',
             'iphone15pm': 'iPhone 15 Pro Max',
+            'iphone15p': 'iPhone 15 Pro',
             'iphone15': 'iPhone 15',
+            'iphone15plus': 'iPhone 15 Plus',
+            'iphone14pm': 'iPhone 14 Pro Max',
+            'iphone14p': 'iPhone 14 Pro',
             'iphone14': 'iPhone 14',
+            'iphone14plus': 'iPhone 14 Plus',
+            'iphone13pm': 'iPhone 13 Pro Max',
             'iphone13': 'iPhone 13',
+            'iphone13mini': 'iPhone 13 Mini',
+            'iphone12pm': 'iPhone 12 Pro Max',
+            'iphone12': 'iPhone 12',
+            'iphone12mini': 'iPhone 12 Mini',
+            'iphone11pm': 'iPhone 11 Pro Max',
+            'iphone11': 'iPhone 11',
+            'iphonese3': 'iPhone SE 3',
+            'iphonese2': 'iPhone SE 2',
             'rog8': 'ROG Phone 8',
+            'rog8pro': 'ROG Phone 8 Pro',
             'rog7': 'ROG Phone 7',
+            'rog7ultimate': 'ROG Phone 7 Ultimate',
+            'rog6': 'ROG Phone 6',
+            'zenfone10': 'Zenfone 10',
+            'zenfone9': 'Zenfone 9',
             '12': 'OnePlus 12',
             '12r': 'OnePlus 12R',
             '11': 'OnePlus 11',
+            '11r': 'OnePlus 11R',
+            '10pro': 'OnePlus 10 Pro',
+            '10t': 'OnePlus 10T',
+            'nord3': 'Nord 3',
             'pixel9': 'Pixel 9',
+            'pixel9pro': 'Pixel 9 Pro',
+            'pixel9xl': 'Pixel 9 XL',
             'pixel8': 'Pixel 8',
+            'pixel8pro': 'Pixel 8 Pro',
             'pixel8a': 'Pixel 8a',
+            'pixel7': 'Pixel 7',
+            'pixel7pro': 'Pixel 7 Pro',
+            'pixel6': 'Pixel 6',
+            'pixel6pro': 'Pixel 6 Pro',
             'findx7': 'Find X7',
+            'findx7ultra': 'Find X7 Ultra',
+            'findx6': 'Find X6',
+            'findx5': 'Find X5',
             'reno11': 'Reno 11',
+            'reno10': 'Reno 10',
+            'reno9': 'Reno 9',
             'gt5': 'GT 5',
+            'gt5pro': 'GT 5 Pro',
+            'gt3': 'GT 3',
+            'gt2': 'GT 2',
             '12': 'Realme 12',
+            '12pro': 'Realme 12 Pro',
+            '11': 'Realme 11',
+            'narzo60': 'Narzo 60',
             'magic6': 'Magic 6',
+            'magic6pro': 'Magic 6 Pro',
+            'magic5': 'Magic 5',
+            'magic5pro': 'Magic 5 Pro',
             '90': 'Honor 90',
+            '90pro': 'Honor 90 Pro',
+            '80': 'Honor 80',
             'phone2': 'Phone (2)',
+            'phone2a': 'Phone (2a)',
             'phone1': 'Phone (1)',
             'outro': 'Outro'
         };
 
         const modelosPorMarca = {
-            samsung: ['s24', 's24plus', 's24ultra', 's23', 's23ultra', 'a55', 'a35', 'a15', 'a05', 'zfold5', 'zflip5'],
-            xiaomi: ['redmi13', 'redmi12', 'poco', 'pocox6', 'mi14', 'mi13', 'redminote12'],
-            motorola: ['g54', 'g84', 'edge40', 'edge50', 'g73'],
-            apple: ['iphone16pm', 'iphone16', 'iphone15pm', 'iphone15', 'iphone14', 'iphone13'],
-            asus: ['rog8', 'rog7'],
-            oneplus: ['12', '12r', '11'],
-            google: ['pixel9', 'pixel8', 'pixel8a'],
-            oppo: ['findx7', 'reno11'],
-            realme: ['gt5', '12'],
-            honor: ['magic6', '90'],
-            nothing: ['phone2', 'phone1'],
+            samsung: ['s24', 's24plus', 's24ultra', 's23', 's23plus', 's23ultra', 's22', 's22plus', 's22ultra', 's21',
+                's21plus', 's21ultra', 'a55', 'a54', 'a35', 'a34', 'a25', 'a15', 'a14', 'a05', 'zfold5', 'zfold4',
+                'zflip5', 'zflip4', 'm54', 'm34', 'f54'
+            ],
+            xiaomi: ['redmi13', 'redmi13c', 'redmi12', 'redmi12c', 'poco', 'pocox6', 'pocox5', 'pocof5', 'mi14', 'mi13',
+                'mi12', 'redminote12', 'redminote11', 'redminote10', '12t', '11t'
+            ],
+            motorola: ['g54', 'g53', 'g84', 'g73', 'g72', 'edge40', 'edge50', 'edge30', 'razr40', 'g100'],
+            apple: ['iphone16pm', 'iphone16p', 'iphone16', 'iphone16plus', 'iphone15pm', 'iphone15p', 'iphone15',
+                'iphone15plus', 'iphone14pm', 'iphone14p', 'iphone14', 'iphone14plus', 'iphone13pm', 'iphone13',
+                'iphone13mini', 'iphone12pm', 'iphone12', 'iphone12mini', 'iphone11pm', 'iphone11', 'iphonese3', 'iphonese2'
+            ],
+            asus: ['rog8', 'rog8pro', 'rog7', 'rog7ultimate', 'rog6', 'zenfone10', 'zenfone9'],
+            oneplus: ['12', '12r', '11', '11r', '10pro', '10t', 'nord3'],
+            google: ['pixel9', 'pixel9pro', 'pixel9xl', 'pixel8', 'pixel8pro', 'pixel8a', 'pixel7', 'pixel7pro', 'pixel6',
+                'pixel6pro'
+            ],
+            oppo: ['findx7', 'findx7ultra', 'findx6', 'findx5', 'reno11', 'reno10', 'reno9'],
+            realme: ['gt5', 'gt5pro', 'gt3', 'gt2', '12', '12pro', '11', 'narzo60'],
+            honor: ['magic6', 'magic6pro', 'magic5', 'magic5pro', '90', '90pro', '80'],
+            nothing: ['phone2', 'phone2a', 'phone1'],
             outro: ['outro']
         };
 
@@ -1143,18 +1524,25 @@
         const saveName = document.getElementById('saveName');
         const historyList = document.getElementById('historyList');
 
-        const selectFamoso = document.getElementById('selectFamoso');
-        const famosoDisplay = document.getElementById('famosoDisplay');
-        const fNome = document.getElementById('famosoNome');
-        const fTime = document.getElementById('famosoTime');
-        const fGeral = document.getElementById('fGeral');
-        const fRedDot = document.getElementById('fRedDot');
-        const fMira2x = document.getElementById('fMira2x');
-        const fMira4x = document.getElementById('fMira4x');
-        const fSniper = document.getElementById('fSniper');
-        const fFreeLook = document.getElementById('fFreeLook');
+        const streamersGrid = document.getElementById('streamersGrid');
+
+        // Modal
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalClose = document.getElementById('modalClose');
+        const mNome = document.getElementById('mNome');
+        const mTime = document.getElementById('mTime');
+        const mTag = document.getElementById('mTag');
+        const mGeral = document.getElementById('mGeral');
+        const mRedDot = document.getElementById('mRedDot');
+        const mMira2x = document.getElementById('mMira2x');
+        const mMira4x = document.getElementById('mMira4x');
+        const mSniper = document.getElementById('mSniper');
+        const mFreeLook = document.getElementById('mFreeLook');
+        const mDpi = document.getElementById('mDpi');
+        const mAplicar = document.getElementById('mAplicarSensi');
 
         let ultimoResultado = null;
+        let streamerSelecionado = null;
 
         // Slider label
         precisaoSlider.addEventListener('input', function() {
@@ -1175,7 +1563,7 @@
             if (validarChave(chave)) {
                 telaChave.classList.add('hidden');
                 telaPrincipal.classList.remove('hidden');
-                preencherSelectFamosos();
+                renderStreamers();
                 carregarSalvo();
                 renderHistory();
             } else {
@@ -1193,11 +1581,82 @@
             telaChave.classList.remove('hidden');
             inputChave.value = '';
             resultadoGerado.classList.add('hidden');
-            famosoDisplay.classList.remove('ativo');
         });
 
         // ================================================================
-        // 6. GERAR
+        // 6. STREAMERS
+        // ================================================================
+        function renderStreamers() {
+            streamersGrid.innerHTML = '';
+            famosos.forEach((f, index) => {
+                const div = document.createElement('div');
+                div.className = 'streamer-card';
+                div.dataset.index = index;
+                div.innerHTML = `
+                    <div class="s-nome">${f.nome}</div>
+                    <div class="s-time">${f.time}</div>
+                    <span class="s-badge-pro">PRO</span>
+                `;
+
+                div.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    abrirModal(idx);
+                });
+
+                streamersGrid.appendChild(div);
+            });
+        }
+
+        // ================================================================
+        // 7. MODAL
+        // ================================================================
+        function abrirModal(index) {
+            const f = famosos[index];
+            streamerSelecionado = f;
+
+            mNome.textContent = f.nome;
+            mTime.textContent = f.time;
+            mTag.textContent = 'PRO PLAYER';
+
+            mGeral.textContent = f.geral;
+            mRedDot.textContent = f.redDot;
+            mMira2x.textContent = f.mira2x;
+            mMira4x.textContent = f.mira4x;
+            mSniper.textContent = f.sniper;
+            mFreeLook.textContent = f.freeLook;
+            mDpi.textContent = '460';
+
+            modalOverlay.classList.add('ativo');
+        }
+
+        modalClose.addEventListener('click', () => {
+            modalOverlay.classList.remove('ativo');
+        });
+
+        modalOverlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                modalOverlay.classList.remove('ativo');
+            }
+        });
+
+        mAplicar.addEventListener('click', function() {
+            if (!streamerSelecionado) return;
+            const f = streamerSelecionado;
+            const resultado = {
+                geral: f.geral,
+                redDot: f.redDot,
+                mira2x: f.mira2x,
+                mira4x: f.mira4x,
+                sniper: f.sniper,
+                freeLook: f.freeLook,
+                dpi: 460
+            };
+            exibirResultado(resultado);
+            modalOverlay.classList.remove('ativo');
+        });
+
+        // ================================================================
+        // 8. GERAR
         // ================================================================
         function exibirResultado(resultado) {
             ultimoResultado = resultado;
@@ -1244,7 +1703,7 @@
         }
 
         // ================================================================
-        // 7. COPIAR
+        // 9. COPIAR
         // ================================================================
         btnCopiar.addEventListener('click', () => {
             if (!ultimoResultado) return;
@@ -1259,7 +1718,7 @@
         });
 
         // ================================================================
-        // 8. SALVAR
+        // 10. SALVAR
         // ================================================================
         btnSalvar.addEventListener('click', () => {
             if (!ultimoResultado) return;
@@ -1279,7 +1738,7 @@
         });
 
         // ================================================================
-        // 9. HISTÓRICO
+        // 11. HISTÓRICO
         // ================================================================
         function renderHistory() {
             const historico = JSON.parse(localStorage.getItem('qzz_history') || '[]');
@@ -1311,7 +1770,7 @@
         }
 
         // ================================================================
-        // 10. COMPARTILHAR
+        // 12. COMPARTILHAR
         // ================================================================
         btnCompartilhar.addEventListener('click', () => {
             if (!ultimoResultado) return;
@@ -1329,38 +1788,7 @@
         });
 
         // ================================================================
-        // 11. FAMOSOS
-        // ================================================================
-        function preencherSelectFamosos() {
-            selectFamoso.innerHTML = '<option value="">-- selecione --</option>';
-            famosos.forEach((f, index) => {
-                const opt = document.createElement('option');
-                opt.value = index;
-                opt.textContent = f.nome + ' (' + f.time + ')';
-                selectFamoso.appendChild(opt);
-            });
-
-            selectFamoso.addEventListener('change', function() {
-                const idx = parseInt(this.value);
-                if (isNaN(idx)) {
-                    famosoDisplay.classList.remove('ativo');
-                    return;
-                }
-                const f = famosos[idx];
-                fNome.textContent = f.nome;
-                fTime.textContent = f.time;
-                fGeral.textContent = f.geral;
-                fRedDot.textContent = f.redDot;
-                fMira2x.textContent = f.mira2x;
-                fMira4x.textContent = f.mira4x;
-                fSniper.textContent = f.sniper;
-                fFreeLook.textContent = f.freeLook;
-                famosoDisplay.classList.add('ativo');
-            });
-        }
-
-        // ================================================================
-        // 12. MODELOS
+        // 13. MODELOS
         // ================================================================
         function atualizarModelos() {
             const marcaAtual = marca.value;
@@ -1376,10 +1804,9 @@
         marca.addEventListener('change', atualizarModelos);
 
         // ================================================================
-        // 13. PWA – MANIFESTO E SERVICE WORKER (INSTALAÇÃO)
+        // 14. PWA
         // ================================================================
         (function setupPWA() {
-            // Ícone SVG base64 (engrenagem vermelha)
             const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
                 <rect width="512" height="512" rx="80" fill="#0a0505" />
                 <circle cx="256" cy="256" r="140" fill="none" stroke="#dc2626" stroke-width="40" />
@@ -1397,7 +1824,6 @@
 
             const iconData = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgIcon)));
 
-            // Manifest
             const manifest = {
                 name: 'QZZ GEN – Gerador de Sensi',
                 short_name: 'QZZ GEN',
@@ -1416,7 +1842,6 @@
             const manifestURL = URL.createObjectURL(manifestBlob);
             document.getElementById('manifestLink').href = manifestURL;
 
-            // Service Worker (mínimo – apenas para registrar e instalar)
             const swCode = `
                 self.addEventListener('install', e => {
                     e.waitUntil(self.skipWaiting());
@@ -1441,7 +1866,7 @@
         })();
 
         // ================================================================
-        // 14. INICIALIZAÇÃO
+        // 15. INICIALIZAÇÃO
         // ================================================================
         inputChave.focus();
         atualizarModelos();
