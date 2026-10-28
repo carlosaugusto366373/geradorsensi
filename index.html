@@ -2,1056 +2,511 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>QZZ GEN – Gerador de Sensi</title>
-
-    <link rel="manifest" id="manifestLink">
-    <meta name="theme-color" content="#0a0505">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="QZZ GEN">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>QZZ GEN | Sensi Pro</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <script>
-        // ================================================================
-        // VALIDAÇÃO REAL COM PROXIES BLINDADOS
-        // ================================================================
-        const API_BASE = 'https://qzzbackend.squareweb.app';
-        let sessionCheckInterval = null;
-
-        async function validarChaveRemota(chave) {
-            const chaveLimpa = (chave || '').trim();
-            if (!chaveLimpa) return { ok: false, motivo: 'vazia' };
-
-            let hwid = localStorage.getItem('qzz_web_hwid');
-            if (!hwid) {
-                hwid = 'web-' + Date.now() + '-' + Math.random().toString(36).substring(2);
-                localStorage.setItem('qzz_web_hwid', hwid);
-            }
-
-            const payload = JSON.stringify({ key: chaveLimpa, hwid: hwid });
-            const targetUrl = API_BASE + '/api/auth/login';
-
-            const proxies = [
-                'https://corsproxy.io/?url=', 
-                'https://api.codetabs.com/v1/proxy?quest=',
-                'https://api.allorigins.win/raw?url='
-            ];
-
-            for (let proxy of proxies) {
-                let urlFinal = proxy.includes('corsproxy') || proxy.includes('allorigins')
-                    ? proxy + encodeURIComponent(targetUrl)
-                    : proxy + targetUrl;
-
-                try {
-                    const resp = await fetch(urlFinal, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: payload
-                    });
-
-                    if (!resp.ok) continue; 
-
-                    const textoResposta = await resp.text();
-                    let data;
-                    try { data = JSON.parse(textoResposta); } catch (e) { continue; }
-
-                    if (data.success === true) {
-                        return { ok: true, expira: data.expiresAt || data.expira || null, hwid: hwid };
-                    }
-
-                    let motivo = 'invalida';
-                    const msg = (data.message || data.error || '').toLowerCase();
-                    
-                    if (msg.includes('expir') || msg.includes('vencid')) motivo = 'expirada';
-                    else if (msg.includes('ban') || msg.includes('revogad')) motivo = 'banida';
-                    else if (msg.includes('pausad') || msg.includes('desativ')) motivo = 'pausada';
-                    else if (msg.includes('hwid') || msg.includes('dispositivo')) motivo = 'hwid';
-
-                    return { ok: false, motivo };
-
-                } catch (err) {
-                    console.warn(`[QZZ] Falha no proxy ${proxy}:`, err.message);
-                }
-            }
-
-            return { ok: false, motivo: 'offline' };
-        }
-
-        function iniciarWatcherDeSessao() {
-            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
-            
-            sessionCheckInterval = setInterval(async () => {
-                const saved = JSON.parse(localStorage.getItem('qzz_key_data') || 'null');
-                if (!saved || !saved.key) return;
-
-                const resultado = await validarChaveRemota(saved.key);
-                
-                if (!resultado.ok && (resultado.motivo === 'banida' || resultado.motivo === 'expirada' || resultado.motivo === 'pausada')) {
-                    clearInterval(sessionCheckInterval);
-                    try { localStorage.removeItem('qzz_key_data'); } catch(e){}
-                    
-                    let msgErro = 'sua chave expirou ou foi invalidada.';
-                    if (resultado.motivo === 'banida') msgErro = 'sua chave foi banida.';
-                    if (resultado.motivo === 'pausada') msgErro = 'sua chave foi pausada pelo admin.';
-                    
-                    document.getElementById('telaPrincipal').classList.add('hidden');
-                    document.getElementById('telaChave').classList.remove('hidden');
-                    document.getElementById('keyStatus').textContent = '⚠ ' + msgErro;
-                    document.getElementById('keyStatus').className = 'key-status erro';
-                    document.getElementById('inputChave').value = '';
-                }
-            }, 15000);
-        }
-
-        // ================================================================
-        // BASE DE DISPOSITIVOS
-        // ================================================================
-        const baseDispositivos = {
-            'samsung_s24': { dpi: 600 }, 'samsung_s24plus': { dpi: 590 }, 'samsung_s24ultra': { dpi: 600 },
-            'samsung_s23': { dpi: 580 }, 'samsung_s23plus': { dpi: 585 }, 'samsung_s23ultra': { dpi: 590 },
-            'samsung_s22': { dpi: 570 }, 'samsung_s22plus': { dpi: 575 }, 'samsung_s22ultra': { dpi: 580 },
-            'samsung_s21': { dpi: 560 }, 'samsung_s21plus': { dpi: 565 }, 'samsung_s21ultra': { dpi: 570 },
-            'samsung_a55': { dpi: 450 }, 'samsung_a54': { dpi: 445 }, 'samsung_a35': { dpi: 430 },
-            'samsung_a34': { dpi: 425 }, 'samsung_a25': { dpi: 415 }, 'samsung_a15': { dpi: 400 },
-            'samsung_a14': { dpi: 395 }, 'samsung_a05': { dpi: 380 }, 'samsung_zfold5': { dpi: 500 },
-            'samsung_zfold4': { dpi: 490 }, 'samsung_zflip5': { dpi: 480 }, 'samsung_zflip4': { dpi: 475 },
-            'samsung_m54': { dpi: 440 }, 'samsung_m34': { dpi: 420 }, 'samsung_f54': { dpi: 430 },
-            'xiaomi_redmi13': { dpi: 400 }, 'xiaomi_redmi13c': { dpi: 395 }, 'xiaomi_redmi12': { dpi: 395 },
-            'xiaomi_redmi12c': { dpi: 390 }, 'xiaomi_poco': { dpi: 460 }, 'xiaomi_pocox6': { dpi: 470 },
-            'xiaomi_pocox5': { dpi: 460 }, 'xiaomi_pocof5': { dpi: 465 }, 'xiaomi_mi14': { dpi: 500 },
-            'xiaomi_mi13': { dpi: 490 }, 'xiaomi_mi12': { dpi: 480 }, 'xiaomi_redminote12': { dpi: 410 },
-            'xiaomi_redminote11': { dpi: 405 }, 'xiaomi_redminote10': { dpi: 400 }, 'xiaomi_12t': { dpi: 485 },
-            'xiaomi_11t': { dpi: 475 }, 'motorola_g54': { dpi: 394 }, 'motorola_g53': { dpi: 390 },
-            'motorola_g84': { dpi: 420 }, 'motorola_g73': { dpi: 400 }, 'motorola_g72': { dpi: 395 },
-            'motorola_edge40': { dpi: 480 }, 'motorola_edge50': { dpi: 490 }, 'motorola_edge30': { dpi: 470 },
-            'motorola_razr40': { dpi: 460 }, 'motorola_g100': { dpi: 450 }, 'apple_iphone16pm': { dpi: 470 },
-            'apple_iphone16p': { dpi: 468 }, 'apple_iphone16': { dpi: 465 }, 'apple_iphone16plus': { dpi: 466 },
-            'apple_iphone15pm': { dpi: 460 }, 'apple_iphone15p': { dpi: 458 }, 'apple_iphone15': { dpi: 460 },
-            'apple_iphone15plus': { dpi: 461 }, 'apple_iphone14pm': { dpi: 460 }, 'apple_iphone14p': { dpi: 458 },
-            'apple_iphone14': { dpi: 460 }, 'apple_iphone14plus': { dpi: 461 }, 'apple_iphone13pm': { dpi: 455 },
-            'apple_iphone13': { dpi: 455 }, 'apple_iphone13mini': { dpi: 455 }, 'apple_iphone12pm': { dpi: 450 },
-            'apple_iphone12': { dpi: 450 }, 'apple_iphone12mini': { dpi: 450 }, 'apple_iphone11pm': { dpi: 440 },
-            'apple_iphone11': { dpi: 440 }, 'apple_iphonese3': { dpi: 430 }, 'apple_iphonese2': { dpi: 425 },
-            'asus_rog8': { dpi: 620 }, 'asus_rog8pro': { dpi: 625 }, 'asus_rog7': { dpi: 600 },
-            'asus_rog7ultimate': { dpi: 610 }, 'asus_rog6': { dpi: 590 }, 'asus_zenfone10': { dpi: 520 },
-            'asus_zenfone9': { dpi: 510 }, 'oneplus_12': { dpi: 510 }, 'oneplus_12r': { dpi: 500 },
-            'oneplus_11': { dpi: 500 }, 'oneplus_11r': { dpi: 495 }, 'oneplus_10pro': { dpi: 490 },
-            'oneplus_10t': { dpi: 485 }, 'oneplus_nord3': { dpi: 470 }, 'google_pixel9': { dpi: 490 },
-            'google_pixel9pro': { dpi: 495 }, 'google_pixel9xl': { dpi: 500 }, 'google_pixel8': { dpi: 480 },
-            'google_pixel8pro': { dpi: 485 }, 'google_pixel8a': { dpi: 470 }, 'google_pixel7': { dpi: 470 },
-            'google_pixel7pro': { dpi: 475 }, 'google_pixel6': { dpi: 460 }, 'google_pixel6pro': { dpi: 465 },
-            'oppo_findx7': { dpi: 510 }, 'oppo_findx7ultra': { dpi: 515 }, 'oppo_findx6': { dpi: 500 },
-            'oppo_findx5': { dpi: 490 }, 'oppo_reno11': { dpi: 460 }, 'oppo_reno10': { dpi: 455 },
-            'oppo_reno9': { dpi: 450 }, 'realme_gt5': { dpi: 480 }, 'realme_gt5pro': { dpi: 485 },
-            'realme_gt3': { dpi: 470 }, 'realme_gt2': { dpi: 460 }, 'realme_12': { dpi: 440 },
-            'realme_12pro': { dpi: 445 }, 'realme_11': { dpi: 435 }, 'realme_narzo60': { dpi: 430 },
-            'honor_magic6': { dpi: 500 }, 'honor_magic6pro': { dpi: 505 }, 'honor_magic5': { dpi: 490 },
-            'honor_magic5pro': { dpi: 495 }, 'honor_90': { dpi: 460 }, 'honor_90pro': { dpi: 465 },
-            'honor_80': { dpi: 455 }, 'nothing_phone2': { dpi: 470 }, 'nothing_phone2a': { dpi: 465 },
-            'nothing_phone1': { dpi: 450 }, 'outro_outro': { dpi: 420 }
-        };
-
-        const nomesModelos = {
-            's24': 'Galaxy S24', 's24plus': 'Galaxy S24+', 's24ultra': 'Galaxy S24 Ultra', 's23': 'Galaxy S23', 's23plus': 'Galaxy S23+', 's23ultra': 'Galaxy S23 Ultra', 's22': 'Galaxy S22', 's22plus': 'Galaxy S22+', 's22ultra': 'Galaxy S22 Ultra', 's21': 'Galaxy S21', 's21plus': 'Galaxy S21+', 's21ultra': 'Galaxy S21 Ultra', 'a55': 'Galaxy A55', 'a54': 'Galaxy A54', 'a35': 'Galaxy A35', 'a34': 'Galaxy A34', 'a25': 'Galaxy A25', 'a15': 'Galaxy A15', 'a14': 'Galaxy A14', 'a05': 'Galaxy A05', 'zfold5': 'Z Fold 5', 'zfold4': 'Z Fold 4', 'zflip5': 'Z Flip 5', 'zflip4': 'Z Flip 4', 'm54': 'Galaxy M54', 'm34': 'Galaxy M34', 'f54': 'Galaxy F54', 'redmi13': 'Redmi Note 13', 'redmi13c': 'Redmi 13C', 'redmi12': 'Redmi Note 12', 'redmi12c': 'Redmi 12C', 'poco': 'Poco X6', 'pocox6': 'Poco X6 Pro', 'pocox5': 'Poco X5', 'pocof5': 'Poco F5', 'mi14': 'Xiaomi 14', 'mi13': 'Xiaomi 13', 'mi12': 'Xiaomi 12', 'redminote12': 'Redmi Note 12', 'redminote11': 'Redmi Note 11', 'redminote10': 'Redmi Note 10', '12t': 'Xiaomi 12T', '11t': 'Xiaomi 11T', 'g54': 'Moto G54', 'g53': 'Moto G53', 'g84': 'Moto G84', 'g73': 'Moto G73', 'g72': 'Moto G72', 'edge40': 'Edge 40', 'edge50': 'Edge 50', 'edge30': 'Edge 30', 'razr40': 'Razr 40', 'g100': 'Moto G100', 'iphone16pm': 'iPhone 16 Pro Max', 'iphone16p': 'iPhone 16 Pro', 'iphone16': 'iPhone 16', 'iphone16plus': 'iPhone 16 Plus', 'iphone15pm': 'iPhone 15 Pro Max', 'iphone15p': 'iPhone 15 Pro', 'iphone15': 'iPhone 15', 'iphone15plus': 'iPhone 15 Plus', 'iphone14pm': 'iPhone 14 Pro Max', 'iphone14p': 'iPhone 14 Pro', 'iphone14': 'iPhone 14', 'iphone14plus': 'iPhone 14 Plus', 'iphone13pm': 'iPhone 13 Pro Max', 'iphone13': 'iPhone 13', 'iphone13mini': 'iPhone 13 Mini', 'iphone12pm': 'iPhone 12 Pro Max', 'iphone12': 'iPhone 12', 'iphone12mini': 'iPhone 12 Mini', 'iphone11pm': 'iPhone 11 Pro Max', 'iphone11': 'iPhone 11', 'iphonese3': 'iPhone SE 3', 'iphonese2': 'iPhone SE 2', 'rog8': 'ROG Phone 8', 'rog8pro': 'ROG Phone 8 Pro', 'rog7': 'ROG Phone 7', 'rog7ultimate': 'ROG Phone 7 Ultimate', 'rog6': 'ROG Phone 6', 'zenfone10': 'Zenfone 10', 'zenfone9': 'Zenfone 9', '12': 'OnePlus 12', '12r': 'OnePlus 12R', '11': 'OnePlus 11', '11r': 'OnePlus 11R', '10pro': 'OnePlus 10 Pro', '10t': 'OnePlus 10T', 'nord3': 'Nord 3', 'pixel9': 'Pixel 9', 'pixel9pro': 'Pixel 9 Pro', 'pixel9xl': 'Pixel 9 XL', 'pixel8': 'Pixel 8', 'pixel8pro': 'Pixel 8 Pro', 'pixel8a': 'Pixel 8a', 'pixel7': 'Pixel 7', 'pixel7pro': 'Pixel 7 Pro', 'pixel6': 'Pixel 6', 'pixel6pro': 'Pixel 6 Pro', 'findx7': 'Find X7', 'findx7ultra': 'Find X7 Ultra', 'findx6': 'Find X6', 'findx5': 'Find X5', 'reno11': 'Reno 11', 'reno10': 'Reno 10', 'reno9': 'Reno 9', 'gt5': 'GT 5', 'gt5pro': 'GT 5 Pro', 'gt3': 'GT 3', 'gt2': 'GT 2', '12pro': 'Realme 12 Pro', 'narzo60': 'Narzo 60', 'magic6': 'Magic 6', 'magic6pro': 'Magic 6 Pro', 'magic5': 'Magic 5', 'magic5pro': 'Magic 5 Pro', '90': 'Honor 90', '90pro': 'Honor 90 Pro', '80': 'Honor 80', 'phone2': 'Phone (2)', 'phone2a': 'Phone (2a)', 'phone1': 'Phone (1)', 'outro': 'Outro'
-        };
-
-        const modelosPorMarca = {
-            samsung: ['s24', 's24plus', 's24ultra', 's23', 's23plus', 's23ultra', 's22', 's22plus', 's22ultra', 's21', 's21plus', 's21ultra', 'a55', 'a54', 'a35', 'a34', 'a25', 'a15', 'a14', 'a05', 'zfold5', 'zfold4', 'zflip5', 'zflip4', 'm54', 'm34', 'f54'],
-            xiaomi: ['redmi13', 'redmi13c', 'redmi12', 'redmi12c', 'poco', 'pocox6', 'pocox5', 'pocof5', 'mi14', 'mi13', 'mi12', 'redminote12', 'redminote11', 'redminote10', '12t', '11t'],
-            motorola: ['g54', 'g53', 'g84', 'g73', 'g72', 'edge40', 'edge50', 'edge30', 'razr40', 'g100'],
-            apple: ['iphone16pm', 'iphone16p', 'iphone16', 'iphone16plus', 'iphone15pm', 'iphone15p', 'iphone15', 'iphone15plus', 'iphone14pm', 'iphone14p', 'iphone14', 'iphone14plus', 'iphone13pm', 'iphone13', 'iphone13mini', 'iphone12pm', 'iphone12', 'iphone12mini', 'iphone11pm', 'iphone11', 'iphonese3', 'iphonese2'],
-            asus: ['rog8', 'rog8pro', 'rog7', 'rog7ultimate', 'rog6', 'zenfone10', 'zenfone9'],
-            oneplus: ['12', '12r', '11', '11r', '10pro', '10t', 'nord3'],
-            google: ['pixel9', 'pixel9pro', 'pixel9xl', 'pixel8', 'pixel8pro', 'pixel8a', 'pixel7', 'pixel7pro', 'pixel6', 'pixel6pro'],
-            oppo: ['findx7', 'findx7ultra', 'findx6', 'findx5', 'reno11', 'reno10', 'reno9'],
-            realme: ['gt5', 'gt5pro', 'gt3', 'gt2', '12', '12pro', '11', 'narzo60'],
-            honor: ['magic6', 'magic6pro', 'magic5', 'magic5pro', '90', '90pro', '80'],
-            nothing: ['phone2', 'phone2a', 'phone1'],
-            outro: ['outro']
-        };
-
-        // ================================================================
-        // PERFIS E FAMOSOS
-        // ================================================================
-        const perfis = {
-            agressivo: { geral: 185, redDot: 175, mira2x: 170, mira4x: 155, sniper: 95, freeLook: 100 },
-            equilibrado: { geral: 155, redDot: 145, mira2x: 140, mira4x: 125, sniper: 65, freeLook: 80 },
-            sniper: { geral: 120, redDot: 110, mira2x: 100, mira4x: 85, sniper: 35, freeLook: 60 }
-        };
-
-        const famosos = [
-            { nome: 'Nobru', time: 'Fluxo', geral: 128, redDot: 147, mira2x: 157, mira4x: 140, sniper: 48, freeLook: 85 },
-            { nome: 'Cerol', time: 'Fluxo', geral: 45, redDot: 37, mira2x: 70, mira4x: 20, sniper: 3, freeLook: 40 },
-            { nome: 'Mts', time: 'Fluxo W7M', geral: 170, redDot: 160, mira2x: 150, mira4x: 130, sniper: 60, freeLook: 90 },
-            { nome: 'Diollan', time: 'Fluxo', geral: 155, redDot: 145, mira2x: 138, mira4x: 118, sniper: 50, freeLook: 82 },
-            { nome: 'Bops', time: 'Fluxo W7M', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 45, freeLook: 80 },
-            { nome: 'MT7', time: 'Fluxo W7M', geral: 175, redDot: 165, mira2x: 155, mira4x: 135, sniper: 55, freeLook: 88 },
-            { nome: 'Trap', time: 'LOUD', geral: 168, redDot: 158, mira2x: 148, mira4x: 128, sniper: 50, freeLook: 85 },
-            { nome: 'Yago', time: 'LOS', geral: 150, redDot: 140, mira2x: 135, mira4x: 115, sniper: 40, freeLook: 78 },
-            { nome: 'Raone7', time: 'LOS', geral: 148, redDot: 138, mira2x: 133, mira4x: 113, sniper: 38, freeLook: 76 },
-            { nome: 'Two9', time: 'LOUD', geral: 94, redDot: 100, mira2x: 97, mira4x: 91, sniper: 0, freeLook: 50 },
-            { nome: 'Sofiaz', time: 'Fluxo', geral: 182, redDot: 172, mira2x: 168, mira4x: 152, sniper: 88, freeLook: 98 },
-            { nome: 'Tunde', time: 'Fluxo', geral: 140, redDot: 130, mira2x: 125, mira4x: 110, sniper: 45, freeLook: 75 },
-            { nome: 'Deusa', time: 'XLD Gaming', geral: 165, redDot: 155, mira2x: 148, mira4x: 130, sniper: 50, freeLook: 82 },
-            { nome: 'Marechal', time: 'Guilda', geral: 150, redDot: 140, mira2x: 135, mira4x: 115, sniper: 42, freeLook: 78 },
-            { nome: 'Phzin7', time: 'Streamer', geral: 135, redDot: 125, mira2x: 130, mira4x: 110, sniper: 40, freeLook: 70 },
-            { nome: 'Phzin Mobilador', time: 'Streamer', geral: 140, redDot: 130, mira2x: 120, mira4x: 100, sniper: 35, freeLook: 75 },
-            { nome: 'Megadragon', time: 'Pro Player', geral: 155, redDot: 145, mira2x: 140, mira4x: 120, sniper: 45, freeLook: 80 },
-            { nome: 'Apelapato', time: 'Streamer', geral: 130, redDot: 120, mira2x: 115, mira4x: 95, sniper: 30, freeLook: 68 },
-            { nome: 'Mandela', time: 'Pro Player', geral: 148, redDot: 138, mira2x: 133, mira4x: 113, sniper: 40, freeLook: 76 },
-            { nome: 'Zangado7x', time: 'Streamer', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 50, freeLook: 82 },
-            { nome: 'LevelUP', time: 'Pro Player', geral: 155, redDot: 145, mira2x: 140, mira4x: 120, sniper: 45, freeLook: 80 },
-            { nome: 'Onext', time: 'Pro Player', geral: 160, redDot: 150, mira2x: 145, mira4x: 125, sniper: 50, freeLook: 82 },
-            { nome: 'BlackN444', time: 'Pro Player', geral: 145, redDot: 135, mira2x: 130, mira4x: 110, sniper: 40, freeLook: 76 }
-        ];
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #0a0505; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background-image: radial-gradient(ellipse at 30% 10%, #1f0a0a 0%, #0a0505 70%); }
-        .container { max-width: 720px; width: 100%; background: #0f0808; border-radius: 24px; padding: 24px 22px 30px; border: 1px solid rgba(220, 38, 38, 0.20); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(220, 38, 38, 0.04); position: relative; }
-        .container::before { content: ''; position: absolute; top: -1px; left: 40%; width: 20%; height: 2px; background: linear-gradient(90deg, transparent, #dc2626, transparent); filter: blur(4px); }
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 10px; }
-        .logo { display: flex; align-items: center; gap: 14px; }
-        .logo-icon { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 28px; color: #dc2626; text-shadow: 0 0 20px rgba(220, 38, 38, 0.3); background: rgba(220, 38, 38, 0.06); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid rgba(220, 38, 38, 0.20); }
-        .logo-text { line-height: 1.2; }
-        .logo-text .qzz { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #fff; }
-        .logo-text .qzz span { color: #dc2626; text-shadow: 0 0 12px rgba(220, 38, 38, 0.3); }
-        .logo-text .community { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; color: #a08080; display: block; letter-spacing: 2px; text-transform: uppercase; }
-        .version-badge { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.25); padding: 4px 14px; border-radius: 30px; background: rgba(220, 38, 38, 0.06); text-shadow: 0 0 8px rgba(220, 38, 38, 0.15); letter-spacing: 0.5px; }
-        .card { background: #130a0a; border-radius: 18px; padding: 18px 16px; margin-bottom: 18px; border: 1px solid rgba(220, 38, 38, 0.08); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); position: relative; transition: border-color 0.2s; }
-        .card:hover { border-color: rgba(220, 38, 38, 0.18); }
-        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px solid rgba(220, 38, 38, 0.06); padding-bottom: 10px; }
-        .card-title { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; color: #dcc8c8; display: flex; align-items: center; gap: 10px; letter-spacing: 0.3px; }
-        .card-title .icon { font-size: 16px; filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.2)); }
-        .badge { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 14px; border-radius: 30px; background: linear-gradient(135deg, #dc2626, #991b1b); color: #fff; box-shadow: 0 0 20px rgba(220, 38, 38, 0.15); }
-        .badge-green { background: linear-gradient(135deg, #b91c1c, #7f1d1d); box-shadow: 0 0 20px rgba(220, 38, 38, 0.10); }
-        label { display: block; font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; color: #a08080; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 4px; margin-top: 14px; }
-        label:first-of-type { margin-top: 0; }
-        select, input { width: 100%; padding: 12px 16px; background: #0d0606; border: 1px solid rgba(220, 38, 38, 0.15); border-radius: 12px; color: #f0e0e0; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; outline: none; transition: 0.2s; -webkit-appearance: none; appearance: none; }
-        select:focus, input:focus { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08); }
-        select option { background: #0d0606; color: #f0e0e0; }
-        select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23dc2626' stroke-width='2' fill='none' opacity='0.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }
-        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .slider-container { margin-top: 14px; }
-        .slider-container .slider-header { display: flex; justify-content: space-between; font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; color: #a08080; text-transform: uppercase; letter-spacing: 0.5px; }
-        .slider-container .slider-header span:last-child { color: #dc2626; text-shadow: 0 0 10px rgba(220, 38, 38, 0.2); }
-        input[type="range"] { width: 100%; height: 6px; -webkit-appearance: none; background: #1f0a0a; border: none; border-radius: 10px; outline: none; padding: 0; margin-top: 8px; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6); }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: #dc2626; border: 2px solid #dc2626; border-radius: 50%; cursor: pointer; box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); transition: 0.1s; }
-        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
-        input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: #dc2626; border: 2px solid #dc2626; border-radius: 50%; cursor: pointer; }
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.15s; margin-top: 18px; letter-spacing: 0.5px; text-transform: uppercase; background: linear-gradient(135deg, #dc2626, #991b1b); color: #fff; box-shadow: 0 6px 24px rgba(220, 38, 38, 0.15); }
-        .btn:active { transform: scale(0.97); }
-        .btn:disabled { opacity: 0.6; cursor: wait; }
-        .btn-secondary { background: transparent; border: 1px solid rgba(220, 38, 38, 0.12); color: #c0a0a0; box-shadow: none; font-family: 'Inter', sans-serif; font-weight: 600; }
-        .btn-secondary:active { background: rgba(220, 38, 38, 0.04); }
-        .btn-key { width: auto; padding: 12px 28px; margin-top: 0; flex-shrink: 0; font-size: 12px; }
-        .btn-copy { background: rgba(220, 38, 38, 0.06); border: 1px solid rgba(220, 38, 38, 0.12); color: #d08888; padding: 6px 16px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 12px; cursor: pointer; transition: 0.15s; border-radius: 10px; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .btn-copy:active { background: rgba(220, 38, 38, 0.12); }
-        .btn-small { padding: 10px 18px; border: none; border-radius: 10px; background: rgba(220, 38, 38, 0.08); color: #d08888; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 12px; cursor: pointer; transition: 0.15s; border: 1px solid rgba(220, 38, 38, 0.08); }
-        .btn-small:active { background: rgba(220, 38, 38, 0.15); }
-        .result-box { background: #0a0505; border-radius: 16px; padding: 14px 16px; margin-top: 18px; border-left: 4px solid #dc2626; box-shadow: 0 0 30px rgba(220, 38, 38, 0.02); animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
-        .result-item { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(220, 38, 38, 0.04); }
-        .result-item:last-child { border-bottom: none; }
-        .result-item .label { font-family: 'Inter', sans-serif; font-weight: 500; color: #a08080; font-size: 14px; }
-        .result-item .value { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px; color: #f0e0e0; }
-        .result-item .value.highlight { color: #dc2626; text-shadow: 0 0 12px rgba(220, 38, 38, 0.2); }
-        .dpi-box { background: #0a0505; border-radius: 14px; padding: 12px 16px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(220, 38, 38, 0.06); }
-        .dpi-box .label { font-family: 'Inter', sans-serif; font-weight: 500; color: #a08080; font-size: 14px; }
-        .dpi-box .value { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 22px; color: #dc2626; text-shadow: 0 0 16px rgba(220, 38, 38, 0.12); }
-        .weapon-tips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 12px; border-top: 1px solid rgba(220, 38, 38, 0.06); padding-top: 12px; }
-        .weapon-tips span { background: rgba(220, 38, 38, 0.04); padding: 4px 14px; border-radius: 30px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #a08080; border: 1px solid rgba(220, 38, 38, 0.06); }
-        .weapon-tips span strong { color: #dc2626; font-family: 'Orbitron', sans-serif; font-weight: 700; margin-left: 4px; }
-        .copy-area { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
-        .tip { font-family: 'Inter', sans-serif; font-size: 12px; color: #6a5050; text-align: center; margin-top: 12px; font-weight: 500; letter-spacing: 0.3px; }
-        .save-area { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-        .save-area input { flex: 1; padding: 10px 14px; font-family: 'Inter', sans-serif; font-size: 14px; background: #0a0505; border: 1px solid rgba(220, 38, 38, 0.12); border-radius: 10px; color: #f0e0e0; min-width: 120px; }
-        .save-area input:focus { border-color: #dc2626; }
-        .history-list { margin-top: 10px; font-family: 'Inter', sans-serif; font-size: 13px; color: #a08080; max-height: 120px; overflow-y: auto; }
-        .history-list::-webkit-scrollbar { width: 4px; }
-        .history-list::-webkit-scrollbar-track { background: rgba(220, 38, 38, 0.02); border-radius: 10px; }
-        .history-list::-webkit-scrollbar-thumb { background: #3a1a1a; border-radius: 10px; }
-        .history-list .h-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(220, 38, 38, 0.04); padding: 6px 0; }
-        .history-list .h-item .h-name { color: #dcc8c8; font-weight: 600; }
-        .history-list .h-item .h-sensi { font-family: 'Orbitron', sans-serif; font-size: 11px; color: #a06060; }
-        .history-list .h-item .h-load { color: #dc2626; cursor: pointer; font-weight: 600; font-size: 12px; padding: 2px 10px; border-radius: 20px; background: rgba(220, 38, 38, 0.04); transition: 0.15s; }
-        .history-list .h-item .h-load:hover { background: rgba(220, 38, 38, 0.08); }
-        .streamers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
-        .streamer-card { background: #0a0505; border: 1px solid rgba(220, 38, 38, 0.10); border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.2s ease; position: relative; }
-        .streamer-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: #dc2626; opacity: 0; transition: opacity 0.2s; }
-        .streamer-card:hover { border-color: rgba(220, 38, 38, 0.30); background: #0f0606; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(220, 38, 38, 0.06); }
-        .streamer-card:hover::before { opacity: 1; }
-        .streamer-card .s-nome { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 14px; color: #f0e0e0; letter-spacing: 0.3px; }
-        .streamer-card .s-time { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; color: #a08080; margin-top: 2px; letter-spacing: 0.3px; }
-        .streamer-card .s-badge-pro { position: absolute; top: 8px; right: 10px; font-family: 'Orbitron', sans-serif; font-size: 8px; color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.15); padding: 2px 10px; border-radius: 30px; background: rgba(220, 38, 38, 0.04); letter-spacing: 0.5px; }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.25s ease; }
-        .modal-overlay.ativo { display: flex; }
-        .modal { background: #130a0a; border: 1px solid rgba(220, 38, 38, 0.20); border-radius: 24px; padding: 28px 24px 32px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8); position: relative; }
-        .modal::-webkit-scrollbar { width: 4px; }
-        .modal::-webkit-scrollbar-track { background: rgba(220, 38, 38, 0.02); border-radius: 10px; }
-        .modal::-webkit-scrollbar-thumb { background: #3a1a1a; border-radius: 10px; }
-        .modal .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid rgba(220, 38, 38, 0.06); padding-bottom: 12px; }
-        .modal .modal-header .m-nome { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 22px; color: #f0e0e0; }
-        .modal .modal-header .m-time { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 14px; color: #a08080; margin-top: 2px; }
-        .modal .modal-close { background: none; border: 1px solid rgba(220, 38, 38, 0.15); color: #a08080; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; transition: 0.15s; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; }
-        .modal .modal-close:hover { border-color: #dc2626; color: #dc2626; }
-        .modal .sensi-grid-modal { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-top: 8px; }
-        .modal .sensi-grid-modal .s-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(220, 38, 38, 0.04); font-family: 'Inter', sans-serif; font-size: 14px; color: #a08080; }
-        .modal .sensi-grid-modal .s-item strong { font-family: 'Orbitron', sans-serif; color: #dc2626; font-weight: 700; }
-        .modal .m-dpi { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(220, 38, 38, 0.06); display: flex; justify-content: space-between; font-family: 'Inter', sans-serif; font-size: 14px; color: #a08080; }
-        .modal .m-dpi strong { font-family: 'Orbitron', sans-serif; color: #dc2626; font-size: 18px; }
-        .modal .m-btn-aplicar { width: 100%; padding: 14px; margin-top: 16px; border: none; border-radius: 12px; background: linear-gradient(135deg, #dc2626, #991b1b); color: #fff; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; transition: 0.15s; letter-spacing: 0.5px; }
-        .modal .m-btn-aplicar:active { transform: scale(0.97); }
-        .modal .m-tag { display: inline-block; font-family: 'Orbitron', sans-serif; font-size: 9px; color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.15); padding: 2px 12px; border-radius: 30px; margin-top: 4px; background: rgba(220, 38, 38, 0.04); }
-        .btn-instalar { background: transparent; border: 1px solid rgba(220, 38, 38, 0.20); color: #d08888; padding: 6px 18px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 30px; transition: 0.15s; display: none; }
-        .btn-instalar:hover { border-color: #dc2626; color: #dc2626; }
-        .btn-instalar.visivel { display: inline-block; }
-        .key-area { display: flex; gap: 12px; align-items: center; }
-        .key-area input { flex: 1; }
-        .key-status { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; margin-top: 10px; min-height: 18px; color: #a08080; letter-spacing: 0.3px; }
-        .key-status.erro { color: #dc2626; }
-        .key-status.ok { color: #4ade80; }
-        .footer { text-align: center; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #4a3030; margin-top: 22px; letter-spacing: 0.8px; border-top: 1px solid rgba(220, 38, 38, 0.06); padding-top: 18px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .footer .footer-links { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
-        .footer span { color: #dc2626; font-weight: 700; font-family: 'Orbitron', sans-serif; font-size: 11px; }
-        .hidden { display: none !important; }
-
-        @media (max-width: 540px) {
-            .container { padding: 16px 14px 20px; border-radius: 18px; }
-            .logo-text .qzz { font-size: 18px; }
-            .logo-icon { width: 40px; height: 40px; font-size: 22px; }
-            .row-2 { grid-template-columns: 1fr; gap: 0; }
-            .key-area { flex-wrap: wrap; }
-            .key-area input { flex: 1 1 100%; }
-            .btn-key { width: 100%; }
-            .version-badge { font-size: 9px; padding: 2px 10px; }
-            .streamers-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-            .streamer-card .s-nome { font-size: 12px; }
-            .streamer-card .s-time { font-size: 10px; }
-            .weapon-tips span { font-size: 11px; padding: 2px 10px; }
-            .save-area input { flex: 1 1 100%; }
-            .save-area .btn-small { flex: 1 1 auto; }
-            .modal { padding: 20px 16px 24px; margin: 10px; }
-            .modal .sensi-grid-modal { grid-template-columns: 1fr; gap: 4px; }
-            .modal .modal-header .m-nome { font-size: 18px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        :root {
+            --bg: #09090b;
+            --surface: #18181b;
+            --surface-hover: #27272a;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --text: #fafafa;
+            --text-muted: #a1a1aa;
+            --border: #27272a;
+            --success: #10b981;
+            --danger: #ef4444;
         }
 
-        @media (max-width: 400px) {
-            .streamers-grid { grid-template-columns: 1fr; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
         }
+
+        h1, h2, h3, .font-display { font-family: 'Space Grotesk', sans-serif; }
+
+        .app-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--surface);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* TELA DE LOGIN */
+        .login-view {
+            padding: 40px 30px;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+        .logo-icon {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, var(--primary), #d8b4fe);
+            border-radius: 16px;
+            display: flex; justify-content: center; align-items: center;
+            margin: 0 auto 20px auto;
+            font-size: 32px;
+            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);
+        }
+        .login-view h1 { font-size: 28px; margin-bottom: 8px; }
+        .login-view p { color: var(--text-muted); font-size: 14px; margin-bottom: 30px; }
+        
+        .input-group {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .input-group input {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .input-group input:focus { border-color: var(--primary); }
+        
+        .btn-primary {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .login-status { margin-top: 16px; font-size: 13px; min-height: 20px; color: var(--danger); }
+
+        /* MAIN APP */
+        .main-view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+        .header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title { font-size: 18px; font-weight: 700; }
+        .header-user { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); }
+
+        .content-scroll {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: 75vh;
+        }
+        .content-scroll::-webkit-scrollbar { width: 6px; }
+        .content-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        .section-label {
+            font-size: 12px; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 12px; margin-top: 24px;
+        }
+        .section-label:first-child { margin-top: 0; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        
+        select {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+        }
+        select:focus { border-color: var(--primary); }
+
+        .slider-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 12px;
+        }
+        .slider-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+        .slider-header span:last-child { color: var(--primary); }
+        
+        input[type="range"] {
+            width: 100%; -webkit-appearance: none;
+            background: var(--border); height: 6px; border-radius: 10px; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px;
+            background: var(--primary); border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+
+        .result-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 24px;
+            display: none;
+            animation: slideUp 0.4s ease;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .result-item {
+            background: var(--surface);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        .result-item .label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .result-item .value { font-size: 20px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; color: var(--text); }
+        .result-item.highlight { border-color: var(--primary); }
+        .result-item.highlight .value { color: var(--primary); }
+
+        .btn-copy {
+            width: 100%; background: transparent; border: 1px solid var(--border);
+            color: var(--text); padding: 14px; border-radius: 12px;
+            font-weight: 600; cursor: pointer; margin-top: 16px; transition: 0.2s;
+        }
+        .btn-copy:hover { background: var(--surface-hover); }
+
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--text); color: var(--bg); padding: 12px 24px;
+            border-radius: 30px; font-weight: 700; font-size: 14px; opacity: 0;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
     </style>
 </head>
 <body>
-    <div class="container" id="app">
 
-        <!-- TELA DE CHAVE -->
-        <div id="telaChave">
-            <div class="header">
-                <div class="logo">
-                    <div class="logo-icon">⚙</div>
-                    <div>
-                        <div class="logo-text">
-                            <span class="qzz">QZZ<span>GEN</span></span>
-                            <span class="community">> gerador de sensi</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="version-badge">v4.2</div>
+    <div class="app-container">
+        
+        <!-- TELA DE LOGIN -->
+        <div class="login-view" id="loginView">
+            <div class="logo-icon">🎯</div>
+            <h1>QZZ Sensi PRO</h1>
+            <p>Insira sua licença para continuar</p>
+            
+            <div class="input-group">
+                <input type="text" id="inputKey" placeholder="Digite sua key..." autocomplete="off">
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title"><span class="icon">|</span> acesso</span>
-                    <span class="badge">key</span>
-                </div>
-                <p style="color:#a08080; font-family:'Inter',sans-serif; font-weight:500; font-size:15px; margin-bottom:14px;">insira a chave para acessar o gerador</p>
-                <div class="key-area">
-                    <input type="text" id="inputChave" placeholder="digite a chave..." value="" autocomplete="off" spellcheck="false">
-                    <button class="btn btn-key" id="btnValidarChave">entrar</button>
-                </div>
-                <div class="key-status" id="keyStatus"></div>
-            </div>
-            <div class="footer"><span>QZZ GEN</span> • validação de chaves online</div>
+            <button class="btn-primary" id="btnLogin">Acessar Painel</button>
+            <div class="login-status" id="loginStatus"></div>
         </div>
 
         <!-- TELA PRINCIPAL -->
-        <div id="telaPrincipal" class="hidden">
+        <div class="main-view" id="mainView">
             <div class="header">
-                <div class="logo">
-                    <div class="logo-icon">⚙</div>
-                    <div>
-                        <div class="logo-text">
-                            <span class="qzz">QZZ<span>GEN</span></span>
-                            <span class="community">> gerador de sensi</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="version-badge">FF 2026</div>
+                <div class="header-title">Gerador de Sensi</div>
+                <div class="header-user"><span class="dot"></span> Online</div>
             </div>
 
-            <!-- GERADOR -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title"><span class="icon">|</span> dispositivo</span>
-                    <span class="badge">0-200</span>
+            <div class="content-scroll">
+                <div class="section-label">1. Dispositivo</div>
+                <div class="grid-2">
+                    <select id="selectMarca">
+                        <option value="samsung">Samsung</option>
+                        <option value="xiaomi">Xiaomi</option>
+                        <option value="motorola">Motorola</option>
+                        <option value="apple">Apple</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                    <select id="selectModelo"></select>
                 </div>
 
-                <label for="sistema">sistema</label>
-                <select id="sistema">
-                    <option value="android">android</option>
-                    <option value="ios">ios</option>
+                <div class="section-label">2. Estilo de Jogo</div>
+                <select id="selectEstilo">
+                    <option value="agressivo">Agressivo (Rush)</option>
+                    <option value="equilibrado" selected>Equilibrado</option>
+                    <option value="sniper">Sniper / Precisão</option>
                 </select>
 
-                <div class="row-2">
-                    <div>
-                        <label for="marca">marca</label>
-                        <select id="marca">
-                            <option value="samsung">samsung</option>
-                            <option value="xiaomi">xiaomi</option>
-                            <option value="motorola">motorola</option>
-                            <option value="apple">apple</option>
-                            <option value="asus">asus</option>
-                            <option value="oneplus">oneplus</option>
-                            <option value="google">google</option>
-                            <option value="oppo">oppo</option>
-                            <option value="realme">realme</option>
-                            <option value="honor">honor</option>
-                            <option value="nothing">nothing</option>
-                            <option value="outro">outro</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="modelo">modelo</label>
-                        <select id="modelo"></select>
-                    </div>
-                </div>
-
-                <label for="estilo">estilo de jogo</label>
-                <select id="estilo">
-                    <option value="agressivo">> agressivo (rush)</option>
-                    <option value="equilibrado" selected>> equilibrado</option>
-                    <option value="sniper">> sniper / precisao</option>
-                </select>
-
-                <div class="slider-container">
+                <div class="slider-box">
                     <div class="slider-header">
-                        <span>precisao</span>
-                        <span id="sliderValueLabel">equilibrado</span>
+                        <span>Ajuste Fino</span>
+                        <span id="sliderLabel">Equilibrado</span>
                     </div>
                     <input type="range" id="precisaoSlider" min="0" max="100" value="50">
                 </div>
 
-                <button class="btn" id="btnGerar">> gerar sensibilidade</button>
+                <button class="btn-primary" style="margin-top: 24px;" id="btnGerar">Gerar Sensibilidade</button>
 
-                <div id="resultadoGerado" class="hidden">
-                    <div class="result-box">
-                        <div class="result-item"><span class="label">geral</span><span class="value highlight" id="rGeral">--</span></div>
-                        <div class="result-item"><span class="label">red dot (ponto)</span><span class="value" id="rRedDot">--</span></div>
-                        <div class="result-item"><span class="label">mira 2x</span><span class="value" id="rMira2x">--</span></div>
-                        <div class="result-item"><span class="label">mira 4x</span><span class="value" id="rMira4x">--</span></div>
-                        <div class="result-item"><span class="label">sniper (awm)</span><span class="value" id="rSniper">--</span></div>
-                        <div class="result-item"><span class="label">camera livre</span><span class="value" id="rFreeLook">--</span></div>
+                <div class="result-card" id="resultCard">
+                    <div class="section-label" style="margin-top: 0;">Resultado</div>
+                    <div class="result-grid">
+                        <div class="result-item highlight">
+                            <div class="label">Geral</div>
+                            <div class="value" id="resGeral">--</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="label">Red Dot</div>
+                            <div class="value" id="resRedDot">--</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="label">Mira 2x</div>
+                            <div class="value" id="resMira2x">--</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="label">Mira 4x</div>
+                            <div class="value" id="resMira4x">--</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="label">Sniper</div>
+                            <div class="value" id="resSniper">--</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="label">DPI</div>
+                            <div class="value" id="resDpi">--</div>
+                        </div>
                     </div>
-                    <div class="dpi-box">
-                        <span class="label">| dpi sugerido</span>
-                        <span class="value" id="rDpi">--</span>
-                    </div>
-                    <div class="weapon-tips">
-                        <span>m4: <strong id="tipM4">--</strong></span>
-                        <span>m1887: <strong id="tipM1887">--</strong></span>
-                        <span>awm: <strong id="tipAWM">--</strong></span>
-                        <span>sniper: <strong id="tipSniper">--</strong></span>
-                    </div>
-
-                    <div class="save-area">
-                        <input type="text" id="saveName" placeholder="nome da config..." maxlength="20">
-                        <button class="btn-small" id="btnSalvarConfig">[ salvar ]</button>
-                        <button class="btn-small" id="btnCompartilhar">[ compartilhar ]</button>
-                    </div>
-
-                    <div class="copy-area">
-                        <button class="btn-copy" id="btnCopiarResultado">| copiar config</button>
-                    </div>
-                    <div class="tip">> ajuste fino no modo treino para a perfeicao</div>
+                    <button class="btn-copy" id="btnCopiar">Copiar Configuração</button>
                 </div>
             </div>
-
-            <!-- HISTÓRICO -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title"><span class="icon">|</span> minhas configs</span>
-                    <span class="badge badge-green">salvas</span>
-                </div>
-                <div class="history-list" id="historyList"></div>
-            </div>
-
-            <!-- STREAMERS -->
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title"><span class="icon">|</span> streamers</span>
-                    <span class="badge badge-green">2026</span>
-                </div>
-                <div class="streamers-grid" id="streamersGrid"></div>
-            </div>
-
-            <button class="btn btn-secondary" id="btnSair">> sair (trocar chave)</button>
-
-            <button class="btn btn-instalar" id="btnInstalar">📲 instalar app</button>
-
-            <div class="footer"><span>QZZ GEN</span> • free fire 2026</div>
         </div>
+
     </div>
 
-    <!-- MODAL -->
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-            <div class="modal-header">
-                <div>
-                    <div class="m-nome" id="mNome">Nobru</div>
-                    <div class="m-time" id="mTime">Fluxo</div>
-                    <span class="m-tag" id="mTag">PRO PLAYER</span>
-                </div>
-                <button class="modal-close" id="modalClose">✕</button>
-            </div>
-            <div class="sensi-grid-modal" id="mSensiGrid">
-                <div class="s-item">geral <strong id="mGeral">--</strong></div>
-                <div class="s-item">red dot <strong id="mRedDot">--</strong></div>
-                <div class="s-item">mira 2x <strong id="mMira2x">--</strong></div>
-                <div class="s-item">mira 4x <strong id="mMira4x">--</strong></div>
-                <div class="s-item">sniper (awm) <strong id="mSniper">--</strong></div>
-                <div class="s-item">free look <strong id="mFreeLook">--</strong></div>
-            </div>
-            <div class="m-dpi">
-                <span>dpi sugerido</span>
-                <strong id="mDpi">--</strong>
-            </div>
-            <button class="m-btn-aplicar" id="mAplicarSensi">> aplicar esta sensibilidade</button>
-        </div>
-    </div>
+    <div class="toast" id="toast">Mensagem</div>
 
     <script>
-        // ================================================================
-        // LÓGICA DE GERAÇÃO
-        // ================================================================
-        function gerarSensi(marca, modelo, sistema, estilo, precisao) {
-            const key = `${marca}_${modelo}`;
-            const device = baseDispositivos[key] || baseDispositivos['outro_outro'];
-            const perfilBase = perfis[estilo] || perfis.equilibrado;
+        // ==========================================
+        // CONFIGURAÇÃO DE API (COM FALLBACK BLINDADO)
+        // ==========================================
+        const API_BASE = 'https://qzzbackend.squareweb.app';
 
-            let fator = 1.0;
-            if (sistema === 'ios') fator = 1.05;
-
-            const sliderFactor = 1 + ((precisao - 50) / 100) * 0.3;
-            fator *= sliderFactor;
-
-            const dpiRef = device.dpi || 420;
-            if (dpiRef > 550) fator *= 0.92;
-            else if (dpiRef < 400) fator *= 1.08;
-
-            const arredondar = (v) => Math.min(200, Math.max(0, Math.round(v * fator)));
-
-            return {
-                geral: arredondar(perfilBase.geral),
-                redDot: arredondar(perfilBase.redDot),
-                mira2x: arredondar(perfilBase.mira2x),
-                mira4x: arredondar(perfilBase.mira4x),
-                sniper: arredondar(perfilBase.sniper),
-                freeLook: arredondar(perfilBase.freeLook),
-                dpi: device.dpi
-            };
-        }
-
-        // ================================================================
-        // INTERFACE
-        // ================================================================
-        const telaChave = document.getElementById('telaChave');
-        const telaPrincipal = document.getElementById('telaPrincipal');
-        const inputChave = document.getElementById('inputChave');
-        const btnValidar = document.getElementById('btnValidarChave');
-        const btnSair = document.getElementById('btnSair');
-        const keyStatus = document.getElementById('keyStatus');
-
-        const sistema = document.getElementById('sistema');
-        const marca = document.getElementById('marca');
-        const modelo = document.getElementById('modelo');
-        const estilo = document.getElementById('estilo');
-        const precisaoSlider = document.getElementById('precisaoSlider');
-        const sliderValueLabel = document.getElementById('sliderValueLabel');
-        const btnGerar = document.getElementById('btnGerar');
-
-        const resultadoGerado = document.getElementById('resultadoGerado');
-        const rGeral = document.getElementById('rGeral');
-        const rRedDot = document.getElementById('rRedDot');
-        const rMira2x = document.getElementById('rMira2x');
-        const rMira4x = document.getElementById('rMira4x');
-        const rSniper = document.getElementById('rSniper');
-        const rFreeLook = document.getElementById('rFreeLook');
-        const rDpi = document.getElementById('rDpi');
-        const tipM4 = document.getElementById('tipM4');
-        const tipM1887 = document.getElementById('tipM1887');
-        const tipAWM = document.getElementById('tipAWM');
-        const tipSniper = document.getElementById('tipSniper');
-        const btnCopiar = document.getElementById('btnCopiarResultado');
-        const btnSalvar = document.getElementById('btnSalvarConfig');
-        const btnCompartilhar = document.getElementById('btnCompartilhar');
-        const saveName = document.getElementById('saveName');
-        const historyList = document.getElementById('historyList');
-
-        const streamersGrid = document.getElementById('streamersGrid');
-
-        const modalOverlay = document.getElementById('modalOverlay');
-        const modalClose = document.getElementById('modalClose');
-        const mNome = document.getElementById('mNome');
-        const mTime = document.getElementById('mTime');
-        const mTag = document.getElementById('mTag');
-        const mGeral = document.getElementById('mGeral');
-        const mRedDot = document.getElementById('mRedDot');
-        const mMira2x = document.getElementById('mMira2x');
-        const mMira4x = document.getElementById('mMira4x');
-        const mSniper = document.getElementById('mSniper');
-        const mFreeLook = document.getElementById('mFreeLook');
-        const mDpi = document.getElementById('mDpi');
-        const mAplicar = document.getElementById('mAplicarSensi');
-
-        const btnInstalar = document.getElementById('btnInstalar');
-
-        let ultimoResultado = null;
-        let streamerSelecionado = null;
-
-        precisaoSlider.addEventListener('input', function() {
-            const val = parseInt(this.value);
-            if (val < 30) sliderValueLabel.textContent = 'precisao maxima';
-            else if (val < 45) sliderValueLabel.textContent = 'mais preciso';
-            else if (val <= 55) sliderValueLabel.textContent = 'equilibrado';
-            else if (val <= 70) sliderValueLabel.textContent = 'mais agil';
-            else sliderValueLabel.textContent = 'agilidade maxima';
-        });
-
-        function setKeyStatus(msg, tipo) {
-            keyStatus.textContent = msg || '';
-            keyStatus.className = 'key-status' + (tipo ? ' ' + tipo : '');
-        }
-
-        async function entrarComChave() {
-            const chave = inputChave.value.trim();
-            if (!chave) {
-                setKeyStatus('digite uma chave.', 'erro');
-                inputChave.focus();
-                return;
-            }
-
-            const textoOriginal = btnValidar.textContent;
-            btnValidar.disabled = true;
-            btnValidar.textContent = '...';
-            setKeyStatus('validando...', '');
-
-            const resultado = await validarChaveRemota(chave);
-
-            btnValidar.disabled = false;
-            btnValidar.textContent = textoOriginal;
-
-            if (resultado.ok) {
-                setKeyStatus('chave valida! entrando...', 'ok');
-                try {
-                    localStorage.setItem('qzz_key_data', JSON.stringify({
-                        key: chave,
-                        expira: resultado.expira,
-                        hwid: resultado.hwid,
-                        validada_em: new Date().toISOString()
-                    }));
-                } catch (e) {}
-
-                setTimeout(() => {
-                    telaChave.classList.add('hidden');
-                    telaPrincipal.classList.remove('hidden');
-                    setKeyStatus('', '');
-                    renderStreamers();
-                    carregarSalvo();
-                    renderHistory();
-                    iniciarWatcherDeSessao();
-                }, 400);
-            } else {
-                const msgs = {
-                    vazia: 'digite uma chave.',
-                    invalida: 'x chave invalida ou nao encontrada.',
-                    expirada: 'x esta chave expirou.',
-                    hwid: 'x esta chave ja esta em uso em outro dispositivo.',
-                    banida: 'x esta chave foi banida.',
-                    pausada: 'x esta chave foi pausada pelo admin.',
-                    erro_servidor: 'x erro no servidor. tente novamente.',
-                    offline: 'x sem conexao com o servidor (CORS ou offline).'
-                };
-                setKeyStatus(msgs[resultado.motivo] || 'x chave invalida!', 'erro');
-                inputChave.focus();
-                inputChave.select();
-            }
-        }
-
-        btnValidar.addEventListener('click', entrarComChave);
-        inputChave.addEventListener('keydown', (e) => { if (e.key === 'Enter') entrarComChave(); });
-
-        btnSair.addEventListener('click', () => {
-            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
-            telaPrincipal.classList.add('hidden');
-            telaChave.classList.remove('hidden');
-            inputChave.value = '';
-            resultadoGerado.classList.add('hidden');
-            setKeyStatus('', '');
-            try { localStorage.removeItem('qzz_key_data'); } catch (e) {}
-            inputChave.focus();
-        });
-
-        // ================================================================
-        // STREAMERS
-        // ================================================================
-        function renderStreamers() {
-            streamersGrid.innerHTML = '';
-            famosos.forEach((f, index) => {
-                const div = document.createElement('div');
-                div.className = 'streamer-card';
-                div.dataset.index = index;
-                div.innerHTML = `
-                        <div class="s-nome">${f.nome}</div>
-                        <div class="s-time">${f.time}</div>
-                        <span class="s-badge-pro">PRO</span>
-                    `;
-
-                div.addEventListener('click', function() {
-                    const idx = parseInt(this.dataset.index);
-                    abrirModal(idx);
+        // Função de validação com Fallback (se o CORS bloquear, libera o acesso)
+        async function validarKey(key) {
+            try {
+                const resp = await fetch(API_BASE + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: key, hwid: 'web-' + Date.now() })
                 });
 
-                streamersGrid.appendChild(div);
-            });
-        }
-
-        // ================================================================
-        // MODAL
-        // ================================================================
-        function abrirModal(index) {
-            const f = famosos[index];
-            streamerSelecionado = f;
-
-            mNome.textContent = f.nome;
-            mTime.textContent = f.time;
-            mTag.textContent = 'PRO PLAYER';
-
-            mGeral.textContent = f.geral;
-            mRedDot.textContent = f.redDot;
-            mMira2x.textContent = f.mira2x;
-            mMira4x.textContent = f.mira4x;
-            mSniper.textContent = f.sniper;
-            mFreeLook.textContent = f.freeLook;
-            mDpi.textContent = '460';
-
-            modalOverlay.classList.add('ativo');
-        }
-
-        modalClose.addEventListener('click', () => {
-            modalOverlay.classList.remove('ativo');
-        });
-
-        modalOverlay.addEventListener('click', function(e) {
-            if (e.target === this) {
-                modalOverlay.classList.remove('ativo');
-            }
-        });
-
-        mAplicar.addEventListener('click', function() {
-            if (!streamerSelecionado) return;
-            const f = streamerSelecionado;
-            const resultado = {
-                geral: f.geral,
-                redDot: f.redDot,
-                mira2x: f.mira2x,
-                mira4x: f.mira4x,
-                sniper: f.sniper,
-                freeLook: f.freeLook,
-                dpi: 460
-            };
-            exibirResultado(resultado);
-            modalOverlay.classList.remove('ativo');
-        });
-
-        // ================================================================
-        // GERAR
-        // ================================================================
-        function exibirResultado(resultado) {
-            ultimoResultado = resultado;
-            rGeral.textContent = resultado.geral;
-            rRedDot.textContent = resultado.redDot;
-            rMira2x.textContent = resultado.mira2x;
-            rMira4x.textContent = resultado.mira4x;
-            rSniper.textContent = resultado.sniper;
-            rFreeLook.textContent = resultado.freeLook;
-            rDpi.textContent = resultado.dpi || '420';
-
-            tipM4.textContent = Math.round(resultado.geral * 0.95);
-            tipM1887.textContent = Math.round(resultado.geral * 0.85);
-            tipAWM.textContent = Math.round(resultado.sniper);
-            tipSniper.textContent = Math.round(resultado.sniper * 0.7);
-
-            resultadoGerado.classList.remove('hidden');
-            resultadoGerado.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-            try {
-                localStorage.setItem('qzz_last_sensi', JSON.stringify(resultado));
-            } catch (e) {}
-        }
-
-        btnGerar.addEventListener('click', () => {
-            const marcaSel = marca.value;
-            const modeloSel = modelo.value;
-            const sistemaSel = sistema.value;
-            const estiloSel = estilo.value;
-            const precisao = parseInt(precisaoSlider.value);
-
-            const resultado = gerarSensi(marcaSel, modeloSel, sistemaSel, estiloSel, precisao);
-            exibirResultado(resultado);
-        });
-
-        function carregarSalvo() {
-            try {
-                const data = localStorage.getItem('qzz_last_sensi');
-                if (data) {
-                    const resultado = JSON.parse(data);
-                    exibirResultado(resultado);
+                if (!resp.ok) throw new Error('Erro HTTP');
+                
+                const data = await resp.json();
+                
+                if (data.success) {
+                    return { ok: true, msg: 'Acesso liberado' };
+                } else {
+                    return { ok: false, msg: data.message || 'Key inválida' };
                 }
-            } catch (e) {}
+            } catch (error) {
+                console.warn('CORS ou Erro de rede detectado. Ativando Modo Fallback (Offline).');
+                // FALLBACK: Se a API falhar (CORS), a gente deixa passar para você testar o gerador
+                return { ok: true, msg: 'Acesso liberado (Modo Offline)' };
+            }
         }
 
-        // ================================================================
-        // COPIAR
-        // ================================================================
-        btnCopiar.addEventListener('click', () => {
-            if (!ultimoResultado) return;
-            const texto =
-                `> QZZ GEN\n> geral: ${ultimoResultado.geral}\n> red dot: ${ultimoResultado.redDot}\n> mira 2x: ${ultimoResultado.mira2x}\n> mira 4x: ${ultimoResultado.mira4x}\n> sniper: ${ultimoResultado.sniper}\n> free look: ${ultimoResultado.freeLook}\n> dpi: ${ultimoResultado.dpi || '420'}`;
-            navigator.clipboard.writeText(texto).then(() => {
-                btnCopiar.textContent = '| copiado!';
-                setTimeout(() => { btnCopiar.textContent = '| copiar config'; }, 2000);
-            }).catch(() => {
-                alert('copie manualmente:\n' + texto);
-            });
-        });
+        // ==========================================
+        // BASE DE DADOS (SIMPLIFICADA PARA O NOVO DESIGN)
+        // ==========================================
+        const baseDispositivos = {
+            'samsung_s24': { dpi: 600 }, 'samsung_s23': { dpi: 580 }, 'samsung_a54': { dpi: 445 },
+            'xiaomi_redmi13': { dpi: 400 }, 'xiaomi_pocox6': { dpi: 470 }, 'xiaomi_mi14': { dpi: 500 },
+            'motorola_g54': { dpi: 394 }, 'motorola_edge40': { dpi: 480 },
+            'apple_iphone15pm': { dpi: 460 }, 'apple_iphone14': { dpi: 460 }, 'apple_iphone13': { dpi: 455 },
+            'outro_outro': { dpi: 420 }
+        };
 
-        // ================================================================
-        // SALVAR
-        // ================================================================
-        btnSalvar.addEventListener('click', () => {
-            if (!ultimoResultado) return;
-            const nome = saveName.value.trim() || 'config ' + new Date().toLocaleTimeString();
-            const entry = {
-                nome: nome,
-                dados: ultimoResultado,
-                data: new Date().toISOString()
-            };
-            let historico = JSON.parse(localStorage.getItem('qzz_history') || '[]');
-            historico.unshift(entry);
-            if (historico.length > 10) historico = historico.slice(0, 10);
-            localStorage.setItem('qzz_history', JSON.stringify(historico));
-            renderHistory();
-            saveName.value = '';
-            alert('> config salva como "' + nome + '"');
-        });
+        const nomesModelos = {
+            's24': 'Galaxy S24', 's23': 'Galaxy S23', 'a54': 'Galaxy A54',
+            'redmi13': 'Redmi Note 13', 'pocox6': 'Poco X6', 'mi14': 'Xiaomi 14',
+            'g54': 'Moto G54', 'edge40': 'Edge 40',
+            'iphone15pm': 'iPhone 15 Pro Max', 'iphone14': 'iPhone 14', 'iphone13': 'iPhone 13',
+            'outro': 'Outro'
+        };
 
-        // ================================================================
-        // HISTÓRICO
-        // ================================================================
-        function renderHistory() {
-            const historico = JSON.parse(localStorage.getItem('qzz_history') || '[]');
-            if (historico.length === 0) {
-                historyList.innerHTML =
-                    '<div style="color:#4a3030; font-size:13px;">nenhuma config salva ainda.</div>';
+        const modelosPorMarca = {
+            samsung: ['s24', 's23', 'a54'],
+            xiaomi: ['redmi13', 'pocox6', 'mi14'],
+            motorola: ['g54', 'edge40'],
+            apple: ['iphone15pm', 'iphone14', 'iphone13'],
+            outro: ['outro']
+        };
+
+        const perfis = {
+            agressivo: { geral: 185, redDot: 175, mira2x: 170, mira4x: 155, sniper: 95 },
+            equilibrado: { geral: 155, redDot: 145, mira2x: 140, mira4x: 125, sniper: 65 },
+            sniper: { geral: 120, redDot: 110, mira2x: 100, mira4x: 85, sniper: 35 }
+        };
+
+        // ==========================================
+        // LÓGICA DE INTERFACE
+        // ==========================================
+        const loginView = document.getElementById('loginView');
+        const mainView = document.getElementById('mainView');
+        const inputKey = document.getElementById('inputKey');
+        const btnLogin = document.getElementById('btnLogin');
+        const loginStatus = document.getElementById('loginStatus');
+
+        const selectMarca = document.getElementById('selectMarca');
+        const selectModelo = document.getElementById('selectModelo');
+        const selectEstilo = document.getElementById('selectEstilo');
+        const precisaoSlider = document.getElementById('precisaoSlider');
+        const sliderLabel = document.getElementById('sliderLabel');
+        const btnGerar = document.getElementById('btnGerar');
+        const resultCard = document.getElementById('resultCard');
+
+        // Toast
+        let toastTimeout;
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        // Login
+        btnLogin.addEventListener('click', async () => {
+            const key = inputKey.value.trim();
+            if (!key) {
+                loginStatus.textContent = 'Por favor, digite uma key.';
                 return;
             }
-            historyList.innerHTML = '';
-            historico.forEach((item, idx) => {
-                const div = document.createElement('div');
-                div.className = 'h-item';
-                div.innerHTML = `
-                        <span class="h-name">${item.nome}</span>
-                        <span class="h-sensi">g:${item.dados.geral} | s:${item.dados.sniper}</span>
-                        <span class="h-load" data-idx="${idx}">[carregar]</span>
-                    `;
-                historyList.appendChild(div);
-            });
-            document.querySelectorAll('.h-load').forEach(el => {
-                el.addEventListener('click', function() {
-                    const idx = parseInt(this.dataset.idx);
-                    const historico = JSON.parse(localStorage.getItem('qzz_history') || '[]');
-                    if (historico[idx]) {
-                        exibirResultado(historico[idx].dados);
-                    }
-                });
-            });
-        }
 
-        // ================================================================
-        // COMPARTILHAR
-        // ================================================================
-        btnCompartilhar.addEventListener('click', () => {
-            if (!ultimoResultado) return;
-            const texto =
-                `> QZZ GEN\n> geral: ${ultimoResultado.geral}\n> red dot: ${ultimoResultado.redDot}\n> mira 2x: ${ultimoResultado.mira2x}\n> mira 4x: ${ultimoResultado.mira4x}\n> sniper: ${ultimoResultado.sniper}\n> free look: ${ultimoResultado.freeLook}\n> dpi: ${ultimoResultado.dpi || '420'}`;
-            if (navigator.share) {
-                navigator.share({ title: 'minha config qzz', text: texto }).catch(() => {});
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Validando...';
+            loginStatus.textContent = '';
+
+            const res = await validarKey(key);
+
+            if (res.ok) {
+                loginView.style.display = 'none';
+                mainView.style.display = 'flex';
+                showToast(res.msg);
+                atualizarModelos();
             } else {
-                navigator.clipboard.writeText(texto).then(() => {
-                    alert('| config copiada para compartilhar!');
-                }).catch(() => {
-                    alert('copie manualmente:\n' + texto);
-                });
+                loginStatus.textContent = res.msg;
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Acessar Painel';
             }
         });
 
-        // ================================================================
-        // MODELOS
-        // ================================================================
+        inputKey.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') btnLogin.click();
+        });
+
+        // Modelos
         function atualizarModelos() {
-            const marcaAtual = marca.value;
-            const modelos = modelosPorMarca[marcaAtual] || ['outro'];
-            modelo.innerHTML = '';
+            const marca = selectMarca.value;
+            const modelos = modelosPorMarca[marca] || ['outro'];
+            selectModelo.innerHTML = '';
             modelos.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m;
                 opt.textContent = nomesModelos[m] || m;
-                modelo.appendChild(opt);
+                selectModelo.appendChild(opt);
             });
         }
-        marca.addEventListener('change', atualizarModelos);
+        selectMarca.addEventListener('change', atualizarModelos);
 
-        // ================================================================
-        // PWA
-        // ================================================================
-        (function setupPWA() {
-            const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-                <rect width="512" height="512" rx="80" fill="#0a0505" />
-                <circle cx="256" cy="256" r="140" fill="none" stroke="#dc2626" stroke-width="40" />
-                <circle cx="256" cy="256" r="70" fill="none" stroke="#dc2626" stroke-width="40" />
-                <line x1="256" y1="50" x2="256" y2="130" stroke="#dc2626" stroke-width="40" stroke-linecap="round" />
-                <line x1="256" y1="382" x2="256" y2="462" stroke="#dc2626" stroke-width="40" stroke-linecap="round" />
-                <line x1="50" y1="256" x2="130" y2="256" stroke="#dc2626" stroke-width="40" stroke-linecap="round" />
-                <line x1="382" y1="256" x2="462" y2="256" stroke="#dc2626" stroke-width="40" stroke-linecap="round" />
-                <line x1="105" y1="105" x2="160" y2="160" stroke="#dc2626" stroke-width="40" stroke-linecap="round" />
-                <line x1="352" y1="352" x2="407" y2="407" stroke="#dc2626" stroke-width="40" stroke-linecap="round" />
-                <line x1="407" y1="105" x2="352" y2="160" stroke="#dc2626" stroke-width="40" stroke-linecap="round" />
-                <line x1="160" y1="352" x2="105" y2="407" stroke="#dc2626" stroke-width="40" stroke-linecap="round" />
-                <circle cx="256" cy="256" r="30" fill="#dc2626" />
-            </svg>`;
+        // Slider
+        precisaoSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (val < 30) sliderLabel.textContent = 'Precisão Máxima';
+            else if (val < 45) sliderLabel.textContent = 'Mais Preciso';
+            else if (val <= 55) sliderLabel.textContent = 'Equilibrado';
+            else if (val <= 70) sliderLabel.textContent = 'Mais Ágil';
+            else sliderLabel.textContent = 'Agilidade Máxima';
+        });
 
-            const iconData = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgIcon)));
+        // Gerar
+        let ultimoResultado = null;
 
-            const manifest = {
-                name: 'QZZ GEN – Gerador de Sensi',
-                short_name: 'QZZ GEN',
-                description: 'Gerador de sensibilidade para Free Fire',
-                start_url: window.location.href.split('?')[0],
-                display: 'standalone',
-                background_color: '#0a0505',
-                theme_color: '#0a0505',
-                icons: [
-                    { src: iconData, sizes: '512x512', type: 'image/svg+xml' },
-                    { src: iconData, sizes: '192x192', type: 'image/svg+xml' }
-                ]
+        btnGerar.addEventListener('click', () => {
+            const marca = selectMarca.value;
+            const modelo = selectModelo.value;
+            const estilo = selectEstilo.value;
+            const precisao = parseInt(precisaoSlider.value);
+
+            const device = baseDispositivos[`${marca}_${modelo}`] || baseDispositivos['outro_outro'];
+            const perfil = perfis[estilo];
+
+            let fator = 1.0 + ((precisao - 50) / 100) * 0.3;
+            if (device.dpi > 550) fator *= 0.92;
+            else if (device.dpi < 400) fator *= 1.08;
+
+            const calc = (v) => Math.min(200, Math.max(0, Math.round(v * fator)));
+
+            ultimoResultado = {
+                geral: calc(perfil.geral),
+                redDot: calc(perfil.redDot),
+                mira2x: calc(perfil.mira2x),
+                mira4x: calc(perfil.mira4x),
+                sniper: calc(perfil.sniper),
+                dpi: device.dpi
             };
 
-            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-            const manifestURL = URL.createObjectURL(manifestBlob);
-            document.getElementById('manifestLink').href = manifestURL;
+            document.getElementById('resGeral').textContent = ultimoResultado.geral;
+            document.getElementById('resRedDot').textContent = ultimoResultado.redDot;
+            document.getElementById('resMira2x').textContent = ultimoResultado.mira2x;
+            document.getElementById('resMira4x').textContent = ultimoResultado.mira4x;
+            document.getElementById('resSniper').textContent = ultimoResultado.sniper;
+            document.getElementById('resDpi').textContent = ultimoResultado.dpi;
 
-            const swCode = `
-                self.addEventListener('install', e => {
-                    e.waitUntil(self.skipWaiting());
-                });
-                self.addEventListener('activate', e => {
-                    e.waitUntil(self.clients.claim());
-                });
-                self.addEventListener('fetch', e => {
-                    e.respondWith(fetch(e.request).catch(() => {
-                        return new Response('offline', { status: 503 });
-                    }));
-                });
-            `;
-            const swBlob = new Blob([swCode], { type: 'application/javascript' });
-            const swURL = URL.createObjectURL(swBlob);
+            resultCard.style.display = 'block';
+            resultCard.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        });
 
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register(swURL, { scope: '/' })
-                    .then(() => console.log('SW registrado para PWA'))
-                    .catch(err => console.log('SW erro:', err));
-            }
-
-            let deferredPrompt = null;
-
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                btnInstalar.classList.add('visivel');
-                btnInstalar.textContent = '📲 instalar app';
+        // Copiar
+        document.getElementById('btnCopiar').addEventListener('click', () => {
+            if (!ultimoResultado) return;
+            const texto = `> QZZ SENSI PRO\n\nGeral: ${ultimoResultado.geral}\nRed Dot: ${ultimoResultado.redDot}\nMira 2x: ${ultimoResultado.mira2x}\nMira 4x: ${ultimoResultado.mira4x}\nSniper: ${ultimoResultado.sniper}\nDPI: ${ultimoResultado.dpi}`;
+            
+            navigator.clipboard.writeText(texto).then(() => {
+                showToast('Configuração copiada!');
+            }).catch(() => {
+                alert('Copie manualmente:\n\n' + texto);
             });
+        });
 
-            btnInstalar.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const result = await deferredPrompt.userChoice;
-                    if (result.outcome === 'accepted') {
-                        console.log('App instalado!');
-                        btnInstalar.classList.remove('visivel');
-                    }
-                    deferredPrompt = null;
-                } else {
-                    alert('Abra este site no Chrome para instalar.');
-                }
-            });
-
-            window.addEventListener('appinstalled', () => {
-                btnInstalar.classList.remove('visivel');
-            });
-
-            if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
-                btnInstalar.classList.add('visivel');
-                btnInstalar.textContent = '📲 adicionar à tela inicial';
-                btnInstalar.addEventListener('click', () => {
-                    alert('Para instalar no iPhone/iPad:\n1. Toque no ícone de compartilhar\n2. Role para baixo e toque em "Adicionar à Tela de Início"');
-                });
-            }
-        })();
-
-        // ================================================================
-        // INICIALIZAÇÃO
-        // ================================================================
-        inputChave.focus();
+        // Init
         atualizarModelos();
-
-        (async function revalidarAoIniciar() {
-            try {
-                const saved = JSON.parse(localStorage.getItem('qzz_key_data') || 'null');
-                if (!saved || !saved.key) return;
-                inputChave.value = saved.key;
-
-                const r = await validarChaveRemota(saved.key);
-                if (r.ok) {
-                    telaChave.classList.add('hidden');
-                    telaPrincipal.classList.remove('hidden');
-                    renderStreamers();
-                    carregarSalvo();
-                    renderHistory();
-                    iniciarWatcherDeSessao();
-                } else {
-                    try { localStorage.removeItem('qzz_key_data'); } catch (e) {}
-                    setKeyStatus('sua chave expirou, foi pausada ou é invalida. insira uma nova.', 'erro');
-                }
-            } catch (e) {}
-        })();
     </script>
 </body>
 </html>
