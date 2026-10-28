@@ -18,18 +18,83 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- ============================================================
-    SERVICE WORKER – Registrado via blob URL (funciona em servidor)
-    ============================================================ -->
     <script>
         // ================================================================
-        // 0. CHAVES DE ACESSO
+        // 0. BACKEND DE VALIDAÇÃO (substitui as chaves fixas)
         // ================================================================
-        const CHAVES_VALIDAS = [
-            'qzz-a7k9-2m4p',
-            'qzz-8r3n-6x1l',
-            'qzz-5w0q-9e7v'
+        const API_BASE = 'https://qzzbackend.squareweb.app';
+
+        // Rotas candidatas — o código tenta em ordem até uma responder.
+        // Se você souber a rota exata, deixe só ela no topo da lista.
+        const ROTAS_VALIDACAO = [
+            '/api/validate',
+            '/api/validar',
+            '/api/key/validate',
+            '/api/keys/validate',
+            '/validate',
+            '/validar',
+            '/key/check',
+            '/api/check'
         ];
+
+        // Faz a validação remota. Retorna { ok, motivo, expira, hwid }.
+        async function validarChaveRemota(chave) {
+            const chaveLimpa = (chave || '').trim();
+            if (!chaveLimpa) return { ok: false, motivo: 'vazia' };
+
+            let ultimoErro = null;
+
+            for (const rota of ROTAS_VALIDACAO) {
+                try {
+                    const resp = await fetch(API_BASE + rota, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ key: chaveLimpa, chave: chaveLimpa })
+                    });
+
+                    // Se a rota não existe, tenta a próxima
+                    if (resp.status === 404 || resp.status === 405) continue;
+
+                    if (!resp.ok) {
+                        ultimoErro = 'erro_servidor';
+                        continue;
+                    }
+
+                    const data = await resp.json();
+
+                    // Normaliza diferentes formatos de resposta do backend
+                    const valido =
+                        data.valid === true ||
+                        data.ok === true ||
+                        data.status === 'valid' ||
+                        data.status === 'ativo' ||
+                        data.success === true ||
+                        data.valido === true;
+
+                    if (valido) {
+                        return {
+                            ok: true,
+                            expira: data.expires_at || data.expira || data.expiration || null,
+                            hwid: data.hwid || null
+                        };
+                    }
+
+                    // Chave reconhecida mas inválida/expirada
+                    const motivo =
+                        data.reason || data.motivo ||
+                        (data.status === 'expired' || data.status === 'expirada' ? 'expirada' :
+                         data.status === 'hwid' ? 'hwid' : 'invalida');
+
+                    return { ok: false, motivo };
+                } catch (err) {
+                    ultimoErro = 'offline';
+                    // erro de rede — pode ser CORS ou offline; tenta próxima
+                    continue;
+                }
+            }
+
+            return { ok: false, motivo: ultimoErro || 'offline' };
+        }
 
         // ================================================================
         // 1. BASE DE DISPOSITIVOS (MUITOS MODELOS)
@@ -285,9 +350,7 @@
             'gt5pro': 'GT 5 Pro',
             'gt3': 'GT 3',
             'gt2': 'GT 2',
-            '12': 'Realme 12',
             '12pro': 'Realme 12 Pro',
-            '11': 'Realme 11',
             'narzo60': 'Narzo 60',
             'magic6': 'Magic 6',
             'magic6pro': 'Magic 6 Pro',
@@ -375,9 +438,6 @@
     </script>
 
     <style>
-        /* ================================================================
-               ESTILOS (mesmo código de antes)
-               ================================================================ */
         * {
             margin: 0;
             padding: 0;
@@ -680,6 +740,11 @@
 
         .btn:active {
             transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
         }
 
         .btn-secondary {
@@ -1208,6 +1273,24 @@
             flex: 1;
         }
 
+        .key-status {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 10px;
+            min-height: 18px;
+            color: #a08080;
+            letter-spacing: 0.3px;
+        }
+
+        .key-status.erro {
+            color: #dc2626;
+        }
+
+        .key-status.ok {
+            color: #4ade80;
+        }
+
         .footer {
             text-align: center;
             font-family: 'Inter', sans-serif;
@@ -1327,7 +1410,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="version-badge">v4.0</div>
+                <div class="version-badge">v4.1</div>
             </div>
 
             <div class="card">
@@ -1337,11 +1420,12 @@
                 </div>
                 <p style="color:#a08080; font-family:'Inter',sans-serif; font-weight:500; font-size:15px; margin-bottom:14px;">insira a chave para acessar o gerador</p>
                 <div class="key-area">
-                    <input type="text" id="inputChave" placeholder="digite a chave..." value="">
+                    <input type="text" id="inputChave" placeholder="digite a chave..." value="" autocomplete="off" spellcheck="false">
                     <button class="btn btn-key" id="btnValidarChave">entrar</button>
                 </div>
+                <div class="key-status" id="keyStatus"></div>
             </div>
-            <div class="footer"><span>QZZ GEN</span> • sistema de chaves exclusivas</div>
+            <div class="footer"><span>QZZ GEN</span> • validação de chaves online</div>
         </div>
 
         <!-- TELA PRINCIPAL -->
@@ -1540,6 +1624,7 @@
         const inputChave = document.getElementById('inputChave');
         const btnValidar = document.getElementById('btnValidarChave');
         const btnSair = document.getElementById('btnSair');
+        const keyStatus = document.getElementById('keyStatus');
 
         const sistema = document.getElementById('sistema');
         const marca = document.getElementById('marca');
@@ -1599,20 +1684,61 @@
             else sliderValueLabel.textContent = 'agilidade maxima';
         });
 
-        function validarChave(chave) {
-            return CHAVES_VALIDAS.includes(chave.trim().toLowerCase());
+        // ----------------------------------------------------------------
+        // Validação de chave (remota)
+        // ----------------------------------------------------------------
+        function setKeyStatus(msg, tipo) {
+            keyStatus.textContent = msg || '';
+            keyStatus.className = 'key-status' + (tipo ? ' ' + tipo : '');
         }
 
-        function entrarComChave() {
+        async function entrarComChave() {
             const chave = inputChave.value.trim();
-            if (validarChave(chave)) {
-                telaChave.classList.add('hidden');
-                telaPrincipal.classList.remove('hidden');
-                renderStreamers();
-                carregarSalvo();
-                renderHistory();
+            if (!chave) {
+                setKeyStatus('digite uma chave.', 'erro');
+                inputChave.focus();
+                return;
+            }
+
+            const textoOriginal = btnValidar.textContent;
+            btnValidar.disabled = true;
+            btnValidar.textContent = '...';
+            setKeyStatus('validando...', '');
+
+            const resultado = await validarChaveRemota(chave);
+
+            btnValidar.disabled = false;
+            btnValidar.textContent = textoOriginal;
+
+            if (resultado.ok) {
+                setKeyStatus('chave valida! entrando...', 'ok');
+                try {
+                    localStorage.setItem('qzz_key_data', JSON.stringify({
+                        key: chave,
+                        expira: resultado.expira,
+                        hwid: resultado.hwid,
+                        validada_em: new Date().toISOString()
+                    }));
+                } catch (e) {}
+
+                setTimeout(() => {
+                    telaChave.classList.add('hidden');
+                    telaPrincipal.classList.remove('hidden');
+                    setKeyStatus('', '');
+                    renderStreamers();
+                    carregarSalvo();
+                    renderHistory();
+                }, 400);
             } else {
-                alert('x chave invalida!');
+                const msgs = {
+                    vazia: 'digite uma chave.',
+                    invalida: 'x chave invalida ou nao encontrada.',
+                    expirada: 'x esta chave expirou.',
+                    hwid: 'x esta chave ja esta em uso em outro dispositivo.',
+                    erro_servidor: 'x erro no servidor. tente novamente.',
+                    offline: 'x sem conexao com o servidor de validacao.'
+                };
+                setKeyStatus(msgs[resultado.motivo] || 'x chave invalida!', 'erro');
                 inputChave.focus();
                 inputChave.select();
             }
@@ -1626,6 +1752,9 @@
             telaChave.classList.remove('hidden');
             inputChave.value = '';
             resultadoGerado.classList.add('hidden');
+            setKeyStatus('', '');
+            try { localStorage.removeItem('qzz_key_data'); } catch (e) {}
+            inputChave.focus();
         });
 
         // ================================================================
@@ -1852,7 +1981,6 @@
         // 14. PWA – MANIFEST + SERVICE WORKER + INSTALAÇÃO
         // ================================================================
         (function setupPWA() {
-            // Ícone SVG base64
             const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
                 <rect width="512" height="512" rx="80" fill="#0a0505" />
                 <circle cx="256" cy="256" r="140" fill="none" stroke="#dc2626" stroke-width="40" />
@@ -1870,7 +1998,6 @@
 
             const iconData = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgIcon)));
 
-            // Manifest
             const manifest = {
                 name: 'QZZ GEN – Gerador de Sensi',
                 short_name: 'QZZ GEN',
@@ -1889,7 +2016,6 @@
             const manifestURL = URL.createObjectURL(manifestBlob);
             document.getElementById('manifestLink').href = manifestURL;
 
-            // Service Worker
             const swCode = `
                 self.addEventListener('install', e => {
                     e.waitUntil(self.skipWaiting());
@@ -1912,7 +2038,6 @@
                     .catch(err => console.log('SW erro:', err));
             }
 
-            // Botão de instalação
             let deferredPrompt = null;
 
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -1936,12 +2061,10 @@
                 }
             });
 
-            // Detecta se já está instalado
             window.addEventListener('appinstalled', () => {
                 btnInstalar.classList.remove('visivel');
             });
 
-            // No iOS, mostra um hint para adicionar à tela inicial
             if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
                 btnInstalar.classList.add('visivel');
                 btnInstalar.textContent = '📲 adicionar à tela inicial';
@@ -1957,8 +2080,27 @@
         inputChave.focus();
         atualizarModelos();
 
-        console.log('# chaves de acesso (minusculas):');
-        CHAVES_VALIDAS.forEach((k, i) => console.log(`  ${i+1}. ${k}`));
+        // Tenta revalidar a key salva ao abrir (silenciosamente)
+        (async function revalidarAoIniciar() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('qzz_key_data') || 'null');
+                if (!saved || !saved.key) return;
+                inputChave.value = saved.key;
+
+                const r = await validarChaveRemota(saved.key);
+                if (r.ok) {
+                    telaChave.classList.add('hidden');
+                    telaPrincipal.classList.remove('hidden');
+                    renderStreamers();
+                    carregarSalvo();
+                    renderHistory();
+                } else {
+                    // key expirou/invalidou — limpa
+                    try { localStorage.removeItem('qzz_key_data'); } catch (e) {}
+                    setKeyStatus('sua chave expirou. insira uma nova.', 'erro');
+                }
+            } catch (e) {}
+        })();
     </script>
 </body>
 </html>
