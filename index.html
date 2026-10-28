@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>QZZ GEN – Gerador de Sensi</title>
 
-    <!-- PWA Manifest -->
     <link rel="manifest" id="manifestLink">
     <meta name="theme-color" content="#0a0505">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,12 +17,13 @@
 
     <script>
         // ================================================================
-        // 0. BACKEND DE VALIDAÇÃO (COM PROXY CORS PARA CONTORNAR BLOQUEIO)
+        // 0. BACKEND DE VALIDAÇÃO COM PROXY CORS
         // ================================================================
         const API_BASE = 'https://qzzbackend.squareweb.app';
         
-        // Usando corsproxy.io para permitir a comunicação do front-end com a API
-        const ROTA_LOGIN = 'https://corsproxy.io/?' + encodeURIComponent(API_BASE + '/api/auth/login');
+        // Usando AllOrigins como proxy para burlar o bloqueio de CORS do navegador
+        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+        const ROTA_LOGIN = PROXY_URL + encodeURIComponent(API_BASE + '/api/auth/login');
 
         let sessionCheckInterval = null;
 
@@ -32,7 +32,6 @@
             if (!chaveLimpa) return { ok: false, motivo: 'vazia' };
 
             try {
-                // Gerando um HWID simples baseado no navegador
                 let hwid = localStorage.getItem('qzz_web_hwid');
                 if (!hwid) {
                     hwid = 'web-' + Date.now() + '-' + Math.random().toString(36).substring(2);
@@ -56,7 +55,15 @@
                     return { ok: false, motivo: 'erro_servidor' };
                 }
 
-                const data = await resp.json();
+                // O proxy AllOrigins retorna o corpo como texto, então precisamos parsear
+                const textoResposta = await resp.text();
+                let data;
+                try {
+                    data = JSON.parse(textoResposta);
+                } catch (e) {
+                    console.error("Resposta não é um JSON válido:", textoResposta);
+                    return { ok: false, motivo: 'erro_servidor' };
+                }
 
                 if (data.success === true) {
                     return {
@@ -66,7 +73,6 @@
                     };
                 }
 
-                // Tratando possíveis mensagens de erro da API (banido, pausado, etc)
                 let motivo = 'invalida';
                 const msg = (data.message || data.error || '').toLowerCase();
                 
@@ -84,7 +90,6 @@
             }
         }
 
-        // Função para checar a sessão em tempo real (15 em 15 segundos)
         function iniciarWatcherDeSessao() {
             if (sessionCheckInterval) clearInterval(sessionCheckInterval);
             
@@ -94,7 +99,7 @@
 
                 const resultado = await validarChaveRemota(saved.key);
                 
-                if (!resultado.ok) {
+                if (!resultado.ok && resultado.motivo !== 'offline' && resultado.motivo !== 'erro_servidor') {
                     clearInterval(sessionCheckInterval);
                     try { localStorage.removeItem('qzz_key_data'); } catch(e){}
                     
@@ -102,18 +107,17 @@
                     if (resultado.motivo === 'banida') msgErro = 'sua chave foi banida ou revogada.';
                     if (resultado.motivo === 'pausada') msgErro = 'sua chave foi pausada pelo administrador.';
                     
-                    // Desloga o usuário na hora
                     document.getElementById('telaPrincipal').classList.add('hidden');
                     document.getElementById('telaChave').classList.remove('hidden');
                     document.getElementById('keyStatus').textContent = '⚠ ' + msgErro;
                     document.getElementById('keyStatus').className = 'key-status erro';
                     document.getElementById('inputChave').value = '';
                 }
-            }, 15000); // 15 segundos
+            }, 15000);
         }
 
         // ================================================================
-        // 1. BASE DE DISPOSITIVOS (MUITOS MODELOS)
+        // 1. BASE DE DISPOSITIVOS
         // ================================================================
         const baseDispositivos = {
             'samsung_s24': { dpi: 600 }, 'samsung_s24plus': { dpi: 590 }, 'samsung_s24ultra': { dpi: 600 },
