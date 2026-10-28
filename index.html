@@ -17,7 +17,7 @@
 
     <script>
         // ================================================================
-        // 0. BACKEND DE VALIDAÇÃO REAL COM PROXIES DE FALLBACK
+        // VALIDAÇÃO REAL COM PROXIES BLINDADOS
         // ================================================================
         const API_BASE = 'https://qzzbackend.squareweb.app';
         let sessionCheckInterval = null;
@@ -35,17 +35,16 @@
             const payload = JSON.stringify({ key: chaveLimpa, hwid: hwid });
             const targetUrl = API_BASE + '/api/auth/login';
 
-            // Proxies para contornar o CORS do navegador
             const proxies = [
+                'https://corsproxy.io/?url=', 
                 'https://api.codetabs.com/v1/proxy?quest=',
-                'https://api.allorigins.win/raw?url=',
-                'https://thingproxy.freeboard.io/fetch/'
+                'https://api.allorigins.win/raw?url='
             ];
 
             for (let proxy of proxies) {
-                let urlFinal = proxy.includes('codetabs') 
-                    ? proxy + targetUrl 
-                    : proxy + encodeURIComponent(targetUrl);
+                let urlFinal = proxy.includes('corsproxy') || proxy.includes('allorigins')
+                    ? proxy + encodeURIComponent(targetUrl)
+                    : proxy + targetUrl;
 
                 try {
                     const resp = await fetch(urlFinal, {
@@ -57,18 +56,16 @@
                         body: payload
                     });
 
-                    if (!resp.ok) continue; // Tenta o próximo proxy
+                    if (!resp.ok) continue; 
 
                     const textoResposta = await resp.text();
                     let data;
                     try { data = JSON.parse(textoResposta); } catch (e) { continue; }
 
-                    // SUCESSO
                     if (data.success === true) {
                         return { ok: true, expira: data.expiresAt || data.expira || null, hwid: hwid };
                     }
 
-                    // TRATAMENTO DE ERRO (Banido, Expirado, Pausado, Inválido)
                     let motivo = 'invalida';
                     const msg = (data.message || data.error || '').toLowerCase();
                     
@@ -77,7 +74,7 @@
                     else if (msg.includes('pausad') || msg.includes('desativ')) motivo = 'pausada';
                     else if (msg.includes('hwid') || msg.includes('dispositivo')) motivo = 'hwid';
 
-                    return { ok: false, motivo, mensagemOriginal: data.message || data.error };
+                    return { ok: false, motivo };
 
                 } catch (err) {
                     console.warn(`[QZZ] Falha no proxy ${proxy}:`, err.message);
@@ -96,7 +93,6 @@
 
                 const resultado = await validarChaveRemota(saved.key);
                 
-                // Se a chave for banida, expirada ou pausada, desloga na hora
                 if (!resultado.ok && (resultado.motivo === 'banida' || resultado.motivo === 'expirada' || resultado.motivo === 'pausada')) {
                     clearInterval(sessionCheckInterval);
                     try { localStorage.removeItem('qzz_key_data'); } catch(e){}
@@ -115,7 +111,7 @@
         }
 
         // ================================================================
-        // 1. BASE DE DISPOSITIVOS
+        // BASE DE DISPOSITIVOS
         // ================================================================
         const baseDispositivos = {
             'samsung_s24': { dpi: 600 }, 'samsung_s24plus': { dpi: 590 }, 'samsung_s24ultra': { dpi: 600 },
@@ -182,7 +178,7 @@
         };
 
         // ================================================================
-        // 2. PERFIS
+        // PERFIS E FAMOSOS
         // ================================================================
         const perfis = {
             agressivo: { geral: 185, redDot: 175, mira2x: 170, mira4x: 155, sniper: 95, freeLook: 100 },
@@ -190,9 +186,6 @@
             sniper: { geral: 120, redDot: 110, mira2x: 100, mira4x: 85, sniper: 35, freeLook: 60 }
         };
 
-        // ================================================================
-        // 3. FAMOSOS
-        // ================================================================
         const famosos = [
             { nome: 'Nobru', time: 'Fluxo', geral: 128, redDot: 147, mira2x: 157, mira4x: 140, sniper: 48, freeLook: 85 },
             { nome: 'Cerol', time: 'Fluxo', geral: 45, redDot: 37, mira2x: 70, mira4x: 20, sniper: 3, freeLook: 40 },
