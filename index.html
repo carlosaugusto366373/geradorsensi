@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>QZZ GEN – Gerador de Sensi</title>
 
-    <!-- ============================================================
-    PWA – Manifest via link (aponta para um JSON inline via data:)
-    ============================================================ -->
+    <!-- PWA Manifest -->
     <link rel="manifest" id="manifestLink">
     <meta name="theme-color" content="#0a0505">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,103 +18,99 @@
 
     <script>
         // ================================================================
-        // 0. BACKEND DE VALIDAÇÃO
+        // 0. BACKEND DE VALIDAÇÃO ATUALIZADO
         // ================================================================
         const API_BASE = 'https://qzzbackend.squareweb.app';
+        
+        // A rota padrão de login da sua API
+        const ROTA_LOGIN = '/api/auth/login';
 
-        // Lista de rotas para tentar. 
-        // Se você descobrir a rota exata no DevTools, coloque ela como a PRIMEIRA da lista.
-        const ROTAS_VALIDACAO = [
-            '/api/validate',
-            '/api/validar',
-            '/api/key/validate',
-            '/api/keys/validate',
-            '/api/validar-key',
-            '/api/keys/check',
-            '/api/check',
-            '/api/login',
-            '/validate',
-            '/validar',
-            '/key/check',
-            '/check'
-        ];
+        let sessionCheckInterval = null;
 
         async function validarChaveRemota(chave) {
             const chaveLimpa = (chave || '').trim();
             if (!chaveLimpa) return { ok: false, motivo: 'vazia' };
 
-            let ultimoErro = null;
-
-            for (const rota of ROTAS_VALIDACAO) {
-                try {
-                    console.log(`[QZZ] Tentando validar na rota: ${API_BASE + rota}`);
-                    
-                    const resp = await fetch(API_BASE + rota, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        // credentials omit evita bloqueio de CORS com cookies
-                        credentials: 'omit', 
-                        body: JSON.stringify({ 
-                            key: chaveLimpa, 
-                            chave: chaveLimpa,
-                            key_code: chaveLimpa
-                        })
-                    });
-
-                    console.log(`[QZZ] Resposta da rota ${rota}:`, resp.status, resp.statusText);
-
-                    // Se a rota não existe ou método não permitido, tenta a próxima
-                    if (resp.status === 404 || resp.status === 405) {
-                        continue;
-                    }
-
-                    // Se o servidor respondeu com erro interno
-                    if (!resp.ok) {
-                        ultimoErro = `erro_servidor_${resp.status}`;
-                        continue;
-                    }
-
-                    const data = await resp.json();
-                    console.log(`[QZZ] JSON recebido de ${rota}:`, data);
-
-                    // Normaliza diferentes formatos de resposta do backend
-                    const valido =
-                        data.valid === true ||
-                        data.ok === true ||
-                        data.status === 'valid' ||
-                        data.status === 'ativo' ||
-                        data.status === 'success' ||
-                        data.success === true ||
-                        data.valido === true ||
-                        data.auth === true;
-
-                    if (valido) {
-                        return {
-                            ok: true,
-                            expira: data.expires_at || data.expira || data.expiration || data.expires || null,
-                            hwid: data.hwid || null
-                        };
-                    }
-
-                    // Se o servidor respondeu, mas a chave é inválida
-                    const motivo =
-                        data.reason || data.motivo || data.error ||
-                        (data.status === 'expired' || data.status === 'expirada' ? 'expirada' :
-                         data.status === 'hwid' ? 'hwid' : 'invalida');
-
-                    return { ok: false, motivo };
-                } catch (err) {
-                    // Erro de rede ou CORS
-                    console.warn(`[QZZ] Erro na rota ${rota}:`, err.message);
-                    ultimoErro = 'offline_ou_cors';
-                    continue;
+            try {
+                // Gerando um HWID simples baseado no navegador
+                let hwid = localStorage.getItem('qzz_web_hwid');
+                if (!hwid) {
+                    hwid = 'web-' + Date.now() + '-' + Math.random().toString(36).substring(2);
+                    localStorage.setItem('qzz_web_hwid', hwid);
                 }
-            }
 
-            return { ok: false, motivo: ultimoErro || 'offline' };
+                const resp = await fetch(API_BASE + ROTA_LOGIN, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'omit', 
+                    body: JSON.stringify({ 
+                        key: chaveLimpa, 
+                        hwid: hwid
+                    })
+                });
+
+                if (!resp.ok) {
+                    if (resp.status === 404) return { ok: false, motivo: 'servidor_offline' };
+                    return { ok: false, motivo: 'erro_servidor' };
+                }
+
+                const data = await resp.json();
+
+                if (data.success === true) {
+                    return {
+                        ok: true,
+                        expira: data.expiresAt || data.expira || null,
+                        hwid: hwid
+                    };
+                }
+
+                // Tratando possíveis mensagens de erro da API (banido, pausado, etc)
+                let motivo = 'invalida';
+                const msg = (data.message || data.error || '').toLowerCase();
+                
+                if (msg.includes('expir') || msg.includes('vencid')) motivo = 'expirada';
+                else if (msg.includes('ban') || msg.includes('revogad')) motivo = 'banida';
+                else if (msg.includes('pausad')) motivo = 'pausada';
+                else if (msg.includes('hwid') || msg.includes('dispositivo')) motivo = 'hwid';
+                else if (msg.includes('paus') || msg.includes('desativ')) motivo = 'pausada';
+
+                return { ok: false, motivo };
+
+            } catch (err) {
+                console.warn(`[QZZ] Erro na validação:`, err.message);
+                return { ok: false, motivo: 'offline' };
+            }
+        }
+
+        // Função para checar a sessão em tempo real (15 em 15 segundos)
+        function iniciarWatcherDeSessao() {
+            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+            
+            sessionCheckInterval = setInterval(async () => {
+                const saved = JSON.parse(localStorage.getItem('qzz_key_data') || 'null');
+                if (!saved || !saved.key) return;
+
+                const resultado = await validarChaveRemota(saved.key);
+                
+                if (!resultado.ok) {
+                    clearInterval(sessionCheckInterval);
+                    try { localStorage.removeItem('qzz_key_data'); } catch(e){}
+                    
+                    let msgErro = 'sua chave expirou ou foi invalidada.';
+                    if (resultado.motivo === 'banida') msgErro = 'sua chave foi banida ou revogada.';
+                    if (resultado.motivo === 'pausada') msgErro = 'sua chave foi pausada pelo administrador.';
+                    
+                    // Desloga o usuário na hora
+                    document.getElementById('telaPrincipal').classList.add('hidden');
+                    document.getElementById('telaChave').classList.remove('hidden');
+                    document.getElementById('keyStatus').textContent = '⚠ ' + msgErro;
+                    document.getElementById('keyStatus').className = 'key-status erro';
+                    document.getElementById('inputChave').value = '';
+                }
+            }, 15000); // 15 segundos
         }
 
         // ================================================================
@@ -516,7 +510,6 @@
 
             <button class="btn btn-secondary" id="btnSair">> sair (trocar chave)</button>
 
-            <!-- BOTÃO INSTALAR (aparece quando PWA é detectado) -->
             <button class="btn btn-instalar" id="btnInstalar">📲 instalar app</button>
 
             <div class="footer"><span>QZZ GEN</span> • free fire 2026</div>
@@ -620,7 +613,6 @@
 
         const streamersGrid = document.getElementById('streamersGrid');
 
-        // Modal
         const modalOverlay = document.getElementById('modalOverlay');
         const modalClose = document.getElementById('modalClose');
         const mNome = document.getElementById('mNome');
@@ -690,6 +682,7 @@
                     renderStreamers();
                     carregarSalvo();
                     renderHistory();
+                    iniciarWatcherDeSessao();
                 }, 400);
             } else {
                 const msgs = {
@@ -697,6 +690,8 @@
                     invalida: 'x chave invalida ou nao encontrada.',
                     expirada: 'x esta chave expirou.',
                     hwid: 'x esta chave ja esta em uso em outro dispositivo.',
+                    banida: 'x esta chave foi banida.',
+                    pausada: 'x esta chave foi pausada pelo admin.',
                     erro_servidor: 'x erro no servidor. tente novamente.',
                     offline: 'x sem conexao com o servidor (CORS ou offline).'
                 };
@@ -710,6 +705,7 @@
         inputChave.addEventListener('keydown', (e) => { if (e.key === 'Enter') entrarComChave(); });
 
         btnSair.addEventListener('click', () => {
+            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
             telaPrincipal.classList.add('hidden');
             telaChave.classList.remove('hidden');
             inputChave.value = '';
@@ -940,7 +936,7 @@
         marca.addEventListener('change', atualizarModelos);
 
         // ================================================================
-        // 14. PWA – MANIFEST + SERVICE WORKER + INSTALAÇÃO
+        // 14. PWA
         // ================================================================
         (function setupPWA() {
             const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
@@ -1055,9 +1051,10 @@
                     renderStreamers();
                     carregarSalvo();
                     renderHistory();
+                    iniciarWatcherDeSessao();
                 } else {
                     try { localStorage.removeItem('qzz_key_data'); } catch (e) {}
-                    setKeyStatus('sua chave expirou ou é invalida. insira uma nova.', 'erro');
+                    setKeyStatus('sua chave expirou, foi pausada ou é invalida. insira uma nova.', 'erro');
                 }
             } catch (e) {}
         })();
