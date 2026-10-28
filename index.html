@@ -17,107 +17,19 @@
 
     <script>
         // ================================================================
-        // 0. BACKEND DE VALIDAÇÃO COM PROXY CORS
+        // SISTEMA DE ACESSO (MODO OFFLINE PARA TESTES)
         // ================================================================
-        const API_BASE = 'https://qzzbackend.squareweb.app';
-        
-        // Usando AllOrigins como proxy para burlar o bloqueio de CORS do navegador
-        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
-        const ROTA_LOGIN = PROXY_URL + encodeURIComponent(API_BASE + '/api/auth/login');
-
-        let sessionCheckInterval = null;
-
-        async function validarChaveRemota(chave) {
-            const chaveLimpa = (chave || '').trim();
-            if (!chaveLimpa) return { ok: false, motivo: 'vazia' };
-
-            try {
-                let hwid = localStorage.getItem('qzz_web_hwid');
-                if (!hwid) {
-                    hwid = 'web-' + Date.now() + '-' + Math.random().toString(36).substring(2);
-                    localStorage.setItem('qzz_web_hwid', hwid);
-                }
-
-                const resp = await fetch(ROTA_LOGIN, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        key: chaveLimpa, 
-                        hwid: hwid
-                    })
-                });
-
-                if (!resp.ok) {
-                    if (resp.status === 404) return { ok: false, motivo: 'servidor_offline' };
-                    return { ok: false, motivo: 'erro_servidor' };
-                }
-
-                // O proxy AllOrigins retorna o corpo como texto, então precisamos parsear
-                const textoResposta = await resp.text();
-                let data;
-                try {
-                    data = JSON.parse(textoResposta);
-                } catch (e) {
-                    console.error("Resposta não é um JSON válido:", textoResposta);
-                    return { ok: false, motivo: 'erro_servidor' };
-                }
-
-                if (data.success === true) {
-                    return {
-                        ok: true,
-                        expira: data.expiresAt || data.expira || null,
-                        hwid: hwid
-                    };
-                }
-
-                let motivo = 'invalida';
-                const msg = (data.message || data.error || '').toLowerCase();
-                
-                if (msg.includes('expir') || msg.includes('vencid')) motivo = 'expirada';
-                else if (msg.includes('ban') || msg.includes('revogad')) motivo = 'banida';
-                else if (msg.includes('pausad')) motivo = 'pausada';
-                else if (msg.includes('hwid') || msg.includes('dispositivo')) motivo = 'hwid';
-                else if (msg.includes('paus') || msg.includes('desativ')) motivo = 'pausada';
-
-                return { ok: false, motivo };
-
-            } catch (err) {
-                console.warn(`[QZZ] Erro na validação:`, err.message);
-                return { ok: false, motivo: 'offline' };
+        // Por enquanto, qualquer chave com mais de 3 letras vai entrar.
+        // A validação real na API será reativada quando o CORS for corrigido.
+        function validarChaveLocal(chave) {
+            if (chave.trim().length > 3) {
+                return true;
             }
-        }
-
-        function iniciarWatcherDeSessao() {
-            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
-            
-            sessionCheckInterval = setInterval(async () => {
-                const saved = JSON.parse(localStorage.getItem('qzz_key_data') || 'null');
-                if (!saved || !saved.key) return;
-
-                const resultado = await validarChaveRemota(saved.key);
-                
-                if (!resultado.ok && resultado.motivo !== 'offline' && resultado.motivo !== 'erro_servidor') {
-                    clearInterval(sessionCheckInterval);
-                    try { localStorage.removeItem('qzz_key_data'); } catch(e){}
-                    
-                    let msgErro = 'sua chave expirou ou foi invalidada.';
-                    if (resultado.motivo === 'banida') msgErro = 'sua chave foi banida ou revogada.';
-                    if (resultado.motivo === 'pausada') msgErro = 'sua chave foi pausada pelo administrador.';
-                    
-                    document.getElementById('telaPrincipal').classList.add('hidden');
-                    document.getElementById('telaChave').classList.remove('hidden');
-                    document.getElementById('keyStatus').textContent = '⚠ ' + msgErro;
-                    document.getElementById('keyStatus').className = 'key-status erro';
-                    document.getElementById('inputChave').value = '';
-                }
-            }, 15000);
+            return false;
         }
 
         // ================================================================
-        // 1. BASE DE DISPOSITIVOS
+        // BASE DE DISPOSITIVOS
         // ================================================================
         const baseDispositivos = {
             'samsung_s24': { dpi: 600 }, 'samsung_s24plus': { dpi: 590 }, 'samsung_s24ultra': { dpi: 600 },
@@ -184,7 +96,7 @@
         };
 
         // ================================================================
-        // 2. PERFIS
+        // PERFIS E FAMOSOS
         // ================================================================
         const perfis = {
             agressivo: { geral: 185, redDot: 175, mira2x: 170, mira4x: 155, sniper: 95, freeLook: 100 },
@@ -192,9 +104,6 @@
             sniper: { geral: 120, redDot: 110, mira2x: 100, mira4x: 85, sniper: 35, freeLook: 60 }
         };
 
-        // ================================================================
-        // 3. FAMOSOS
-        // ================================================================
         const famosos = [
             { nome: 'Nobru', time: 'Fluxo', geral: 128, redDot: 147, mira2x: 157, mira4x: 140, sniper: 48, freeLook: 85 },
             { nome: 'Cerol', time: 'Fluxo', geral: 45, redDot: 37, mira2x: 70, mira4x: 20, sniper: 3, freeLook: 40 },
@@ -388,7 +297,7 @@
                 </div>
                 <div class="key-status" id="keyStatus"></div>
             </div>
-            <div class="footer"><span>QZZ GEN</span> • validação de chaves online</div>
+            <div class="footer"><span>QZZ GEN</span> • validação local (offline)</div>
         </div>
 
         <!-- TELA PRINCIPAL -->
@@ -548,7 +457,7 @@
 
     <script>
         // ================================================================
-        // 4. LÓGICA DE GERAÇÃO
+        // LÓGICA DE GERAÇÃO
         // ================================================================
         function gerarSensi(marca, modelo, sistema, estilo, precisao) {
             const key = `${marca}_${modelo}`;
@@ -579,7 +488,7 @@
         }
 
         // ================================================================
-        // 5. INTERFACE
+        // INTERFACE
         // ================================================================
         const telaChave = document.getElementById('telaChave');
         const telaPrincipal = document.getElementById('telaPrincipal');
@@ -657,27 +566,9 @@
                 return;
             }
 
-            const textoOriginal = btnValidar.textContent;
-            btnValidar.disabled = true;
-            btnValidar.textContent = '...';
-            setKeyStatus('validando...', '');
-
-            const resultado = await validarChaveRemota(chave);
-
-            btnValidar.disabled = false;
-            btnValidar.textContent = textoOriginal;
-
-            if (resultado.ok) {
-                setKeyStatus('chave valida! entrando...', 'ok');
-                try {
-                    localStorage.setItem('qzz_key_data', JSON.stringify({
-                        key: chave,
-                        expira: resultado.expira,
-                        hwid: resultado.hwid,
-                        validada_em: new Date().toISOString()
-                    }));
-                } catch (e) {}
-
+            // MODO OFFLINE: Validação local simples
+            if (validarChaveLocal(chave)) {
+                setKeyStatus('chave aceita! entrando...', 'ok');
                 setTimeout(() => {
                     telaChave.classList.add('hidden');
                     telaPrincipal.classList.remove('hidden');
@@ -685,20 +576,9 @@
                     renderStreamers();
                     carregarSalvo();
                     renderHistory();
-                    iniciarWatcherDeSessao();
                 }, 400);
             } else {
-                const msgs = {
-                    vazia: 'digite uma chave.',
-                    invalida: 'x chave invalida ou nao encontrada.',
-                    expirada: 'x esta chave expirou.',
-                    hwid: 'x esta chave ja esta em uso em outro dispositivo.',
-                    banida: 'x esta chave foi banida.',
-                    pausada: 'x esta chave foi pausada pelo admin.',
-                    erro_servidor: 'x erro no servidor. tente novamente.',
-                    offline: 'x sem conexao com o servidor (CORS ou offline).'
-                };
-                setKeyStatus(msgs[resultado.motivo] || 'x chave invalida!', 'erro');
+                setKeyStatus('x chave invalida (modo offline).', 'erro');
                 inputChave.focus();
                 inputChave.select();
             }
@@ -708,18 +588,16 @@
         inputChave.addEventListener('keydown', (e) => { if (e.key === 'Enter') entrarComChave(); });
 
         btnSair.addEventListener('click', () => {
-            if (sessionCheckInterval) clearInterval(sessionCheckInterval);
             telaPrincipal.classList.add('hidden');
             telaChave.classList.remove('hidden');
             inputChave.value = '';
             resultadoGerado.classList.add('hidden');
             setKeyStatus('', '');
-            try { localStorage.removeItem('qzz_key_data'); } catch (e) {}
             inputChave.focus();
         });
 
         // ================================================================
-        // 6. STREAMERS
+        // STREAMERS
         // ================================================================
         function renderStreamers() {
             streamersGrid.innerHTML = '';
@@ -743,7 +621,7 @@
         }
 
         // ================================================================
-        // 7. MODAL
+        // MODAL
         // ================================================================
         function abrirModal(index) {
             const f = famosos[index];
@@ -791,7 +669,7 @@
         });
 
         // ================================================================
-        // 8. GERAR
+        // GERAR
         // ================================================================
         function exibirResultado(resultado) {
             ultimoResultado = resultado;
@@ -838,7 +716,7 @@
         }
 
         // ================================================================
-        // 9. COPIAR
+        // COPIAR
         // ================================================================
         btnCopiar.addEventListener('click', () => {
             if (!ultimoResultado) return;
@@ -853,7 +731,7 @@
         });
 
         // ================================================================
-        // 10. SALVAR
+        // SALVAR
         // ================================================================
         btnSalvar.addEventListener('click', () => {
             if (!ultimoResultado) return;
@@ -873,7 +751,7 @@
         });
 
         // ================================================================
-        // 11. HISTÓRICO
+        // HISTÓRICO
         // ================================================================
         function renderHistory() {
             const historico = JSON.parse(localStorage.getItem('qzz_history') || '[]');
@@ -905,7 +783,7 @@
         }
 
         // ================================================================
-        // 12. COMPARTILHAR
+        // COMPARTILHAR
         // ================================================================
         btnCompartilhar.addEventListener('click', () => {
             if (!ultimoResultado) return;
@@ -923,7 +801,7 @@
         });
 
         // ================================================================
-        // 13. MODELOS
+        // MODELOS
         // ================================================================
         function atualizarModelos() {
             const marcaAtual = marca.value;
@@ -939,7 +817,7 @@
         marca.addEventListener('change', atualizarModelos);
 
         // ================================================================
-        // 14. PWA
+        // PWA
         // ================================================================
         (function setupPWA() {
             const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
@@ -1036,31 +914,10 @@
         })();
 
         // ================================================================
-        // 15. INICIALIZAÇÃO
+        // INICIALIZAÇÃO
         // ================================================================
         inputChave.focus();
         atualizarModelos();
-
-        (async function revalidarAoIniciar() {
-            try {
-                const saved = JSON.parse(localStorage.getItem('qzz_key_data') || 'null');
-                if (!saved || !saved.key) return;
-                inputChave.value = saved.key;
-
-                const r = await validarChaveRemota(saved.key);
-                if (r.ok) {
-                    telaChave.classList.add('hidden');
-                    telaPrincipal.classList.remove('hidden');
-                    renderStreamers();
-                    carregarSalvo();
-                    renderHistory();
-                    iniciarWatcherDeSessao();
-                } else {
-                    try { localStorage.removeItem('qzz_key_data'); } catch (e) {}
-                    setKeyStatus('sua chave expirou, foi pausada ou é invalida. insira uma nova.', 'erro');
-                }
-            } catch (e) {}
-        })();
     </script>
 </body>
 </html>
