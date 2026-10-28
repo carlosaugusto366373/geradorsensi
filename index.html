@@ -18,12 +18,12 @@
 
     <script>
         // ================================================================
-        // 0. BACKEND DE VALIDAÇÃO ATUALIZADO
+        // 0. BACKEND DE VALIDAÇÃO (COM PROXY CORS PARA CONTORNAR BLOQUEIO)
         // ================================================================
         const API_BASE = 'https://qzzbackend.squareweb.app';
         
-        // A rota padrão de login da sua API
-        const ROTA_LOGIN = '/api/auth/login';
+        // Usando corsproxy.io para permitir a comunicação do front-end com a API
+        const ROTA_LOGIN = 'https://corsproxy.io/?' + encodeURIComponent(API_BASE + '/api/auth/login');
 
         let sessionCheckInterval = null;
 
@@ -39,13 +39,12 @@
                     localStorage.setItem('qzz_web_hwid', hwid);
                 }
 
-                const resp = await fetch(API_BASE + ROTA_LOGIN, {
+                const resp = await fetch(ROTA_LOGIN, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    credentials: 'omit', 
                     body: JSON.stringify({ 
                         key: chaveLimpa, 
                         hwid: hwid
