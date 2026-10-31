@@ -135,19 +135,10 @@ main{min-width:0}.topbar{height:70px;border-bottom:1px solid var(--border);displ
 }
 
 
-.pwa-install{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:9px;padding:12px 16px;font-size:11px;font-weight:800}
-.login-actions .pwa-install{flex:1;min-width:145px}
-@media(max-width:520px){.landing-actions .pwa-install{width:100%}}
 
 </style>
 
 <meta name="theme-color" content="#ff1728">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="QZZ Sensi">
-<link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
 
 </head>
 <body>
@@ -172,7 +163,7 @@ main{min-width:0}.topbar{height:70px;border-bottom:1px solid var(--border);displ
           <h2>Configure sua sensi.<br>Entre no jogo preparado.</h2>
           <p>Escolha seu aparelho, personalize os valores e encontre uma base para testar no Free Fire. Entre no Discord para suporte e novidades.</p>
           <div class="landing-actions">
-            <a class="secondary-link" href="https://discord.gg/MfY4EAFKnf" target="_blank" rel="noopener noreferrer">◉ Entrar no Discord ↗</a><button class="btn btn-green pwa-install" id="installAppBtn" type="button">↓ Instalar QZZ Sensi</button>
+            <a class="secondary-link" href="https://discord.gg/MfY4EAFKnf" target="_blank" rel="noopener noreferrer">◉ Entrar no Discord ↗</a>
           </div>
         </div>
         <div class="landing-art">
@@ -268,7 +259,7 @@ main{min-width:0}.topbar{height:70px;border-bottom:1px solid var(--border);displ
       </div>
     </div>
     <div class="login-actions">
-      <a class="discord-link" href="https://discord.gg/MfY4EAFKnf" target="_blank" rel="noopener noreferrer">◉ Meu servidor no Discord ↗</a><button class="btn btn-green pwa-install" id="installAppBtnLogin" type="button">↓ Instalar QZZ Sensi</button>
+      <a class="discord-link" href="https://discord.gg/MfY4EAFKnf" target="_blank" rel="noopener noreferrer">◉ Meu servidor no Discord ↗</a>
     </div>
     <div class="login-divider"></div>
     <h1 style="font-size:18px;margin-bottom:7px">Acessar gerador</h1><p>Insira a key da sua licença QZZ para validar o acesso.</p>
@@ -385,8 +376,19 @@ function findExpiry(data){
  if(Number.isFinite(data.expires_in)&&data.expires_in>0)return Date.now()+data.expires_in*1000;
  return null;
 }
+
+function getBrowserId(){
+ const storageKey='qzz_browser_id';
+ let id=localStorage.getItem(storageKey);
+ if(!id){
+  id=(crypto.randomUUID?crypto.randomUUID():('qzz-'+Date.now()+'-'+Math.random().toString(36).slice(2)));
+  localStorage.setItem(storageKey,id);
+ }
+ return id;
+}
+
 async function validateKey(key){
- const response=await fetch(API_BASE+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,hwid:'web-'+(crypto.randomUUID?crypto.randomUUID():Date.now())})});
+ const response=await fetch(API_BASE+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,hwid:'web-'+getBrowserId()})});
  const data=await response.json().catch(()=>({}));
  if(!response.ok)return {ok:false,message:data.message||'Falha ao validar a key.'};
  return data.success?{ok:true,data,message:data.message||'Licença validada'}:{ok:false,message:data.message||'Key inválida ou expirada.'};
@@ -457,35 +459,6 @@ document.querySelectorAll('.nav button[data-target]').forEach(b=>b.addEventListe
 setPlatform('android');setStyle('equilibrado');updateSliderLabel();renderSaved();
 const savedKey=localStorage.getItem('qzz_saved_key');if(savedKey)loginWithKey(savedKey,true);
 
-// Instalação como aplicativo (PWA). Requer hospedagem HTTPS ou localhost.
-let deferredInstallPrompt = null;
-const installButtons = [document.getElementById('installAppBtn'), document.getElementById('installAppBtnLogin')].filter(Boolean);
-function showInstallButtons(show){installButtons.forEach(button=>{button.hidden=!show;});}
-showInstallButtons(true);
-window.addEventListener('beforeinstallprompt', event => {
-  event.preventDefault();
-  deferredInstallPrompt = event;
-  showInstallButtons(true);
-});
-async function installQZZ(){
-  if(deferredInstallPrompt){
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt=null;
-    showInstallButtons(false);
-    return;
-  }
-  if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
-    toast('QZZ Sensi já está instalada');
-  } else {
-    alert('Para instalar no Android: abra esta página no Chrome, toque no menu ⋮ e escolha “Instalar app” ou “Adicionar à tela inicial”. No iPhone: toque em Compartilhar e depois “Adicionar à Tela de Início”.');
-  }
-}
-installButtons.forEach(button=>button.addEventListener('click',installQZZ));
-window.addEventListener('appinstalled',()=>{showInstallButtons(false);toast('QZZ Sensi instalada com sucesso!');});
-if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(err=>console.warn('Service worker não registrado:',err)));
-}
 
 </script>
 </body>
